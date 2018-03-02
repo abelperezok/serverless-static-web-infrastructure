@@ -1,0 +1,430 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Static website 100% serverless",
+	"Parameters": {
+		"DomainName": {
+			"Description": "The site domain name (non www).",
+			"Type": "String",
+			"AllowedPattern": "(?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])",
+			"ConstraintDescription": "Must be a valid domain name."
+		},
+		"SSLCertificate": {
+			"Description": "The ARN of the SSL certificate",
+			"Type": "String"
+		},
+		"HostedZone": {
+			"Description": "Z2FDTNDATAQYW2 for CloudFront",
+			"Type": "String",
+			"Default": "Z2FDTNDATAQYW2"
+		}
+	},
+	"Resources": {
+		"StaticSiteBucket": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+				"BucketName": {
+					"Fn::Sub": "www.${DomainName}"
+				},
+				"WebsiteConfiguration": {
+					"IndexDocument": "index.html",
+					"ErrorDocument": "error.html"
+				}
+			}
+		},
+
+		"RedirectBucket": {
+			"Type": "AWS::S3::Bucket",
+			"Properties": {
+				"BucketName": {
+					"Fn::Sub": "${DomainName}"
+				},
+				"WebsiteConfiguration": {
+					"RedirectAllRequestsTo": {
+						"HostName": {
+							"Fn::Sub": "www.${DomainName}"
+						},
+						"Protocol": "https"
+					}
+				}
+			}
+		},
+
+		"RedirectCloudFront": {
+			"Type": "AWS::CloudFront::Distribution",
+			"Properties": {
+				"DistributionConfig": {
+					"Aliases": [
+						{
+							"Ref": "DomainName"
+						}
+					],
+					"CacheBehaviors": [],
+					"DefaultCacheBehavior": {
+						"AllowedMethods": [
+							"GET",
+							"HEAD",
+							"OPTIONS"
+						],
+						"CachedMethods": [
+							"HEAD",
+							"GET",
+							"OPTIONS"
+						],
+						"Compress": true,
+						"TargetOriginId": "S3Bucket",
+						"ForwardedValues": {
+							"QueryString": false,
+							"Cookies": {
+								"Forward": "none"
+							},
+							"Headers": []
+						},
+						"DefaultTTL": 0,
+						"MinTTL": 0,
+						"MaxTTL": 31536000,
+						"SmoothStreaming": false,
+						"ViewerProtocolPolicy": "redirect-to-https"
+					},
+					"Enabled": true,
+					"HttpVersion": "http2",
+					"Origins": [
+						{
+							"DomainName": {
+								"Fn::Sub": "${DomainName}.s3-website-${AWS::Region}.amazonaws.com"
+							},
+							"Id": "S3Bucket",
+							"CustomOriginConfig": {
+								"HTTPPort": 80,
+								"OriginProtocolPolicy": "http-only"
+							}
+						}
+					],
+					"PriceClass": "PriceClass_100",
+					"ViewerCertificate": {
+						"SslSupportMethod": "sni-only",
+						"AcmCertificateArn": {
+							"Ref": "SSLCertificate"
+						},
+						"MinimumProtocolVersion": "TLSv1.1_2016"
+					}
+				}
+			}
+		},
+
+		"WWWCloudFront": {
+			"Type": "AWS::CloudFront::Distribution",
+			"Properties": {
+				"DistributionConfig": {
+					"Aliases": [
+						{
+							"Fn::Sub": "www.${DomainName}"
+						}
+					],
+					"DefaultRootObject": "index.html",
+					"CacheBehaviors": [],
+					"DefaultCacheBehavior": {
+						"AllowedMethods": [
+							"GET",
+							"HEAD",
+							"OPTIONS"
+						],
+						"CachedMethods": [
+							"HEAD",
+							"GET",
+							"OPTIONS"
+						],
+						"Compress": true,
+						"TargetOriginId": "S3Bucket",
+						"ForwardedValues": {
+							"QueryString": false,
+							"Cookies": {
+								"Forward": "none"
+							},
+							"Headers": []
+						},
+						"DefaultTTL": 0,
+						"MinTTL": 0,
+						"MaxTTL": 31536000,
+						"SmoothStreaming": false,
+						"ViewerProtocolPolicy": "redirect-to-https"
+					},
+					"Enabled": true,
+					"HttpVersion": "http2",
+					"Origins": [
+						{
+							"DomainName": {
+								"Fn::Sub": "www.${DomainName}.s3-website-${AWS::Region}.amazonaws.com"
+							},
+							"Id": "S3Bucket",
+							"CustomOriginConfig": {
+								"HTTPPort": 80,
+								"OriginProtocolPolicy": "http-only"
+							}
+						}
+					],
+					"PriceClass": "PriceClass_100",
+					"ViewerCertificate": {
+						"SslSupportMethod": "sni-only",
+						"AcmCertificateArn": {
+							"Ref": "SSLCertificate"
+						},
+						"MinimumProtocolVersion": "TLSv1.1_2016"
+					}
+				}
+			}
+		},
+
+		"DomainRecordSet": {
+			"Type": "AWS::Route53::RecordSet",
+			"Properties": {
+				"AliasTarget": {
+					"HostedZoneId": {
+						"Ref": "HostedZone"
+					},
+					"DNSName": {
+						"Fn::Sub": "${RedirectCloudFront.DomainName}"
+					}
+				},
+				"HostedZoneName": {
+					"Fn::Sub": "${DomainName}."
+				},
+				"Name": {
+					"Fn::Sub": "${DomainName}."
+				},
+				"Type": "A"
+			}
+		},
+
+		"WWWRecordSet": {
+			"Type": "AWS::Route53::RecordSet",
+			"Properties": {
+				"AliasTarget": {
+					"HostedZoneId": {
+						"Ref": "HostedZone"
+					},
+					"DNSName": {
+						"Fn::Sub": "${WWWCloudFront.DomainName}"
+					}
+				},
+				"HostedZoneName": {
+					"Fn::Sub": "${DomainName}."
+				},
+				"Name": {
+					"Fn::Sub": "www.${DomainName}."
+				},
+				"Type": "A"
+			}
+		},
+
+		"CodeCommitRepository": {
+			"Type": "AWS::CodeCommit::Repository",
+			"Properties": {
+				"RepositoryDescription": "Repository to store de source code",
+				"RepositoryName": {
+					"Fn::Sub": "${DomainName}-web"
+				}
+			}
+		},
+
+		"CodeCommitUserPolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": {
+					"Fn::Sub": "CodeCommitUserPolicy Repo ${CodeCommitRepository.Name}"
+				},
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Sid": "AllowGitCommandlineOperations",
+							"Effect": "Allow",
+							"Action": [
+								"codecommit:GitPull",
+								"codecommit:GitPush"
+							],
+							"Resource": [
+								{
+									"Fn::Sub": "arn:aws:codecommit:::${CodeCommitRepository.Name}"
+								}
+							]
+						}
+					]
+				}
+			}
+		},
+
+		"CodeCommitUser": {
+			"Type": "AWS::IAM::User",
+			"Properties": {
+				"ManagedPolicyArns": [
+					{
+						"Ref": "CodeCommitUserPolicy"
+					}
+				],
+				"UserName": {
+					"Fn::Sub": "${CodeCommitRepository.Name}-user"
+				}
+			}
+		},
+
+		"CodeBuildUserPolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description": { "Fn::Sub": "CodeBuildUserPolicy Repo ${CodeCommitRepository.Name}" },
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Sid": "AccessLogGroupsS3ListObjects",
+							"Effect": "Allow",
+							"Action": [
+								"logs:CreateLogGroup",
+								"s3:ListObjects"
+							],
+							"Resource": "*"
+						},
+						{
+							"Sid": "AccessGitLogs",
+							"Effect": "Allow",
+							"Action": [
+								"codecommit:GitPull",
+								"logs:CreateLogStream",
+								"logs:PutLogEvents"
+							],
+							"Resource": [
+								{ "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder"},
+								{ "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder:*"},
+								{ "Fn::Sub": "${CodeCommitRepository.Arn}" }
+							]
+						},
+						{
+							"Sid": "AccessS3staticBucket",
+							"Effect": "Allow",
+							"Action": "s3:*",
+							"Resource": [
+								"arn:aws:s3:::www.abelperez.info",
+								"arn:aws:s3:::www.abelperez.info/*"
+							]
+						}
+					]							
+				}
+			}
+		},
+
+		"CodeBuildRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "codebuild.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Path": "/service-role/",
+				"ManagedPolicyArns": [
+					{
+						"Ref": "CodeBuildUserPolicy"
+					}
+				]
+			}
+		},
+
+		"CodeBuildProject": {
+			"Type": "AWS::CodeBuild::Project",
+			"Properties": {
+				"Name": {
+					"Fn::Sub": "${AWS::StackName}-builder"
+				},
+				"Artifacts": {
+					"Type": "NO_ARTIFACTS"
+				},
+				"Environment": {
+					"ComputeType": "BUILD_GENERAL1_SMALL",
+					"Image": "aws/codebuild/nodejs:7.0.0",
+					"Type": "LINUX_CONTAINER"
+				},
+				"ServiceRole": { "Fn::GetAtt": ["CodeBuildRole", "Arn"] },
+				"Source": {
+					"Type": "CODECOMMIT",
+					"Location": {
+						"Fn::GetAtt": [
+							"CodeCommitRepository",
+							"CloneUrlHttp"
+						]
+					}
+				},
+				"TimeoutInMinutes": 5
+			}
+		},
+
+		"CloudWatchEventRulePolicy": {
+			"Type": "AWS::IAM::ManagedPolicy",
+			"Properties": {
+				"Description":"",
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Action": [
+							"codebuild:StartBuild"
+						],
+						"Resource": [
+							{ "Fn::Sub": "${CodeBuildProject.Arn}" }
+						]
+					}]
+				}
+			}
+		},
+
+		"CloudWatchEventRuleRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [{
+						"Effect": "Allow",
+						"Principal": {
+							"Service": "events.amazonaws.com"
+						},
+						"Action": "sts:AssumeRole"
+					}]
+				},
+				"Path": "/service-role/",
+				"ManagedPolicyArns": [
+					{
+						"Ref": "CloudWatchEventRulePolicy"
+					}
+				]
+			}
+		},
+
+		"AutomaticBuildRule": {
+			"Type": "AWS::Events::Rule",
+			"Properties": {
+				"Description": "Connects changes in CodeCommit to start CodeBuild project buid",
+				"RoleArn": { "Fn::GetAtt": ["CloudWatchEventRuleRole", "Arn"] },
+				"EventPattern": {
+					"source": [
+						"aws.codecommit"
+					],
+					"detail-type": [
+						"CodeCommit Repository State Change"
+					],
+					"resources": [
+						{ "Fn::GetAtt": ["CodeCommitRepository", "Arn"] }
+					]
+				},
+				"State": "ENABLED",
+				"Targets": [{
+					"Arn": { "Fn::GetAtt": ["CodeBuildProject", "Arn"] },
+					"Id": { "Fn::Sub": "${AWS::StackName}-start-build-rule" },					
+					"RoleArn": { "Fn::GetAtt": ["CloudWatchEventRuleRole", "Arn"] }
+				}]
+			}
+		}
+	}
+}

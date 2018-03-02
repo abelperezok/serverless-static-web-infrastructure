@@ -1,0 +1,47 @@
+aws cloudformation deploy \
+--stack-name abelperez-stack \
+--template-file infrastructure-template.cf.json \
+--parameter-overrides $(cat params.properties) \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
+
+
+
+
+
+
+
+
+
+
+
+
+
+aws cloudformation create-stack --stack-name abelperez-stack \
+--template-body file://infrastructure-template.cf.json \
+--parameters file://params.json \
+--capabilities CAPABILITY_IAM \
+--capabilities CAPABILITY_NAMED_IAM
+
+aws cloudformation update-stack --stack-name abelperez-stack \
+--template-body file://infrastructure-template.cf.json \
+--parameters file://params.json \
+--capabilities CAPABILITY_IAM \
+--capabilities CAPABILITY_NAMED_IAM
+
+
+
+
+
+aws cloudformation create-stack --region us-east-1 \
+--stack-name abelperez-ssl-stack \
+--template-body file://ssl-certificate-template.cf.json \
+--parameters file://ssl-params.json
+
+aws cloudformation update-stack --region us-east-1 \
+--stack-name abelperez-ssl-stack \
+--template-body file://ssl-certificate-template.cf.json \
+--parameters file://ssl-params.json
+
+
+
+
