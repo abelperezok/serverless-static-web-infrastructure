@@ -5,11 +5,9 @@ aws cloudformation deploy \
 --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 
 
+# using yaml - rewriting the template
 
-
-
-
-
+aws cloudformation deploy --stack-name abel-yaml-01 --template-file infrastructure.yaml --profile serverless-web
 
 
 

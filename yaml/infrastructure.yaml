@@ -1,0 +1,44 @@
+Resources:
+  StaticSiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  # WWWRecordSet:
+  #   Type: AWS::Route53::RecordSet
+  #   Properties:
+  #     AliasTarget:
+  #       HostedZoneId:
+  #         Ref: 
+
+
+
+
+
+
+
+
+
+
+    #     "WWWRecordSet": {
+		# 	"Type": "AWS::Route53::RecordSet",
+		# 	"Properties": {
+		# 		"AliasTarget": {
+		# 			"HostedZoneId": {
+		# 				"Ref": "HostedZone"
+		# 			},
+		# 			"DNSName": {
+		# 				"Fn::Sub": "${WWWCloudFront.DomainName}"
+		# 			}
+		# 		},
+		# 		"HostedZoneName": {
+		# 			"Fn::Sub": "${DomainName}."
+		# 		},
+		# 		"Name": {
+		# 			"Fn::Sub": "www.${DomainName}."
+		# 		},
+		# 		"Type": "A"
+		# 	}
+		# },
