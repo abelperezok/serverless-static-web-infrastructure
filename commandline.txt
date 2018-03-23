@@ -10,7 +10,7 @@ aws cloudformation deploy \
 aws cloudformation deploy --stack-name abel-yaml-01 --template-file infrastructure.yaml --profile serverless-web
 
 
-
+aws cloudformation validate-template --template-body file://infrastructure.yaml --profile serverless-web
 
 
 
