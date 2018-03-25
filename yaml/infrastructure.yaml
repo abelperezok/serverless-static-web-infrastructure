@@ -1,16 +1,21 @@
 Parameters:
   DomainName:
-    Description: The site domain name (non www).
+    Description: The site domain name.
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])
     ConstraintDescription: Must be a valid domain name.
     Default: abelperez.info
   SubDomainName:
-    Description: The site domain name (non www).
+    Description: The site subdomain name i.e www
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
     ConstraintDescription: Must be a valid subdomain name.
     Default: test
+  IncludeRedirectToSubDomain:
+    Description: Whether it should include a redirection from the naked domain to the subdomain.
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
   SSLCertificate:
     Description: The ARN of the SSL certificate
     Type: String
@@ -32,7 +37,8 @@ Resources:
     Properties:
       DistributionConfig:
         Aliases:
-          - !Sub ${SubDomainName}.${DomainName} # test.abelperez.info
+          - !Sub ${SubDomainName}.${DomainName}   # test.abelperez.info
+          - !Sub main.${DomainName}               #      abelperez.info
         DefaultRootObject: index.html
         CacheBehaviors: []
         DefaultCacheBehavior:
@@ -78,33 +84,15 @@ Resources:
       HostedZoneName: !Sub ${DomainName}. # abelperez.info.
       Name: !Sub ${SubDomainName}.${DomainName}. # test.abelperez.info.
       Type: A
-
-
-
-
-
-
-
-#     "WWWRecordSet": {
-# 	"Type": "AWS::Route53::RecordSet",
-# 	"Properties": {
-# 		"AliasTarget": {
-# 			"HostedZoneId": {
-# 				"Ref": "HostedZone"
-# 			},
-# 			"DNSName": {
-# 				"Fn::Sub": "${WWWCloudFront.DomainName}"
-# 			}
-# 		},
-# 		"HostedZoneName": {
-# 			"Fn::Sub": "${DomainName}."
-# 		},
-# 		"Name": {
-# 			"Fn::Sub": "www.${DomainName}."
-# 		},
-# 		"Type": "A"
-# 	}
-# },
+  MainRecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      AliasTarget:
+        HostedZoneId: !Ref HostedZone
+        DNSName: !GetAtt WWWCloudFront.DomainName
+      HostedZoneName: !Sub ${DomainName}. # abelperez.info.
+      Name: !Sub main.${DomainName}. # main.abelperez.info.
+      Type: A
 
 
 
@@ -113,20 +101,4 @@ Resources:
 
 
 
-
-
-
-
-
-
-
-
-
-
-  # WWWRecordSet:
-  #   Type: AWS::Route53::RecordSet
-  #   Properties:
-  #     AliasTarget:
-  #       HostedZoneId:
-  #         Ref: 
 
