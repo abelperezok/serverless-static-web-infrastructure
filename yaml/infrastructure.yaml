@@ -4,13 +4,13 @@ Parameters:
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])
     ConstraintDescription: Must be a valid domain name.
-    Default: abelperez.info
+    Default: abelperezmartinez.com #abelperez.info
   SubDomainName:
     Description: The site subdomain name i.e www
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
     ConstraintDescription: Must be a valid subdomain name.
-    Default: test
+    Default: www #test
   IncludeRedirectToSubDomain:
     Description: Whether it should include a redirection from the naked domain to the subdomain.
     Type: String
@@ -19,26 +19,34 @@ Parameters:
   SSLCertificate:
     Description: The ARN of the SSL certificate
     Type: String
-    Default: arn:aws:acm:us-east-1:976153948458:certificate/ac70d662-f70a-4cce-be8b-81fe1946f348
+    Default: arn:aws:acm:us-east-1:976153948458:certificate/e57928e3-8268-468c-8001-5bf011eec0a2 #arn:aws:acm:us-east-1:976153948458:certificate/ac70d662-f70a-4cce-be8b-81fe1946f348
   HostedZone:
     Description: Z2FDTNDATAQYW2 for CloudFront
     Type: String
     Default: Z2FDTNDATAQYW2
 
 Resources:
+  # S3 buckets 
   StaticSiteBucket:
     Type: AWS::S3::Bucket
     Properties:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
+  RedirectBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: !Sub www.${DomainName}
+          Protocol: https
+  # CloudFront distributions
   WWWCloudFront:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Aliases:
-          - !Sub ${SubDomainName}.${DomainName}   # test.abelperez.info
-          - !Sub main.${DomainName}               #      abelperez.info
+          - !Sub ${SubDomainName}.${DomainName}
         DefaultRootObject: index.html
         CacheBehaviors: []
         DefaultCacheBehavior:
@@ -65,7 +73,7 @@ Resources:
         Enabled: true
         HttpVersion: http2
         Origins:
-          - DomainName: !GetAtt StaticSiteBucket.DomainName
+          - DomainName: !Select [2, !Split ["/", !GetAtt StaticSiteBucket.WebsiteURL]]
             Id: S3Bucket
             CustomOriginConfig:
               HTTPPort: 80
@@ -75,23 +83,65 @@ Resources:
           SslSupportMethod: sni-only
           AcmCertificateArn: !Ref SSLCertificate
           MinimumProtocolVersion: TLSv1.1_2016
+  RedirectCloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Sub ${DomainName}
+        CacheBehaviors: []
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          TargetOriginId: S3Bucket
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+            Headers: []
+          DefaultTTL: 0
+          MinTTL: 0
+          MaxTTL: 31536000
+          SmoothStreaming: false
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !Select [2, !Split ["/", !GetAtt RedirectBucket.WebsiteURL]]
+            Id: S3Bucket
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          AcmCertificateArn: !Ref SSLCertificate
+          MinimumProtocolVersion: TLSv1.1_2016
+  # Route53 A record
   WWWRecordSet:
     Type: AWS::Route53::RecordSet
     Properties:
       AliasTarget:
         HostedZoneId: !Ref HostedZone
         DNSName: !GetAtt WWWCloudFront.DomainName
-      HostedZoneName: !Sub ${DomainName}. # abelperez.info.
-      Name: !Sub ${SubDomainName}.${DomainName}. # test.abelperez.info.
+      HostedZoneName: !Sub ${DomainName}.
+      Name: !Sub ${SubDomainName}.${DomainName}.
       Type: A
   MainRecordSet:
     Type: AWS::Route53::RecordSet
     Properties:
       AliasTarget:
         HostedZoneId: !Ref HostedZone
-        DNSName: !GetAtt WWWCloudFront.DomainName
-      HostedZoneName: !Sub ${DomainName}. # abelperez.info.
-      Name: !Sub main.${DomainName}. # main.abelperez.info.
+        DNSName: !GetAtt RedirectCloudFront.DomainName
+      HostedZoneName: !Sub ${DomainName}.
+      Name: !Sub ${DomainName}.
       Type: A
 
 

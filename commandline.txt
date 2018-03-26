@@ -14,8 +14,27 @@ aws cloudformation validate-template --template-body file://infrastructure.yaml 
 
 # --parameter-overrides Key1=Value1 Key2=Value2 
 
+aws cloudformation deploy --stack-name abelperezmartinez-yaml --template-file infrastructure.yaml --profile serverless-web
 
 
+
+
+# command line to create SSL certificate
+
+aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
+--template-file ssl-certificate-template.cf.json \
+--parameter-overrides DomainName=abelperezmartinez.com \
+--region us-east-1 \
+--profile serverless-web 
+
+
+
+
+
+
+
+
+# old command lines - manually create / update stacks 
 
 
 aws cloudformation create-stack --stack-name abelperez-stack \
