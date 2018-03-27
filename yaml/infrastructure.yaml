@@ -226,10 +226,54 @@ Resources:
         Type: CODECOMMIT
         Location: !GetAtt CodeCommitRepository.CloneUrlHttp
       TimeoutInMinutes: 5
+  # CloudWatch event rule, Role and Policy
+  CloudWatchEventRulePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CloudWatchEventRulePolicy for CloudWatch event rule ${AWS::StackName}-start-build-rule
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - codebuild:StartBuild
+            Resource:
+              - !GetAtt CodeBuildProject.Arn
+  CloudWatchEventRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - !Ref CloudWatchEventRulePolicy
+  AutomaticBuildRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Connects changes in CodeCommit to start CodeBuild project buid
+      RoleArn: !GetAtt CloudWatchEventRuleRole.Arn
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - CodeCommit Repository State Change
+        resources:
+          - !GetAtt CodeCommitRepository.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt CodeBuildProject.Arn
+          Id: !Sub ${AWS::StackName}-start-build-rule
+          RoleArn: !GetAtt CloudWatchEventRuleRole.Arn
 
-
-
-
-
-
-
+Outputs:
+  CodeCommitRepositoryCloneUrlHttp:
+    Description: Url to clone the CodeCommit repository via HTTPS
+    Value: !GetAtt CodeCommitRepository.CloneUrlHttp
+  CodeCommitRepositoryCloneUrlSsh:
+    Description: Url to clone the CodeCommit repository via SSH
+    Value: !GetAtt CodeCommitRepository.CloneUrlSsh
