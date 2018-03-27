@@ -168,7 +168,65 @@ Resources:
     Properties:
       ManagedPolicyArns:
         - !Ref CodeCommitUserPolicy
-      UserName: !Sub ${CodeCommitRepository.Name}-user
+  # CodeBuild project, Role and Policy
+  CodeBuildUserPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CodeBuildUserPolicy for CodeBuild project ${AWS::StackName}-builder
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AccessLogGroupsS3ListObjects
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - s3:ListObjects
+            Resource: "*"
+          - Sid: AccessGitLogs
+            Effect: Allow
+            Action:
+              - codecommit:GitPull
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder:*
+              - !GetAtt CodeCommitRepository.Arn
+          - Sid: AccessS3staticBucket
+            Effect: Allow
+            Action: s3:*
+            Resource:
+              - !GetAtt StaticSiteBucket.Arn
+              - !Sub ${StaticSiteBucket.Arn}/*
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - !Ref CodeBuildUserPolicy
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-builder
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/nodejs:7.0.0
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODECOMMIT
+        Location: !GetAtt CodeCommitRepository.CloneUrlHttp
+      TimeoutInMinutes: 5
+
 
 
 
