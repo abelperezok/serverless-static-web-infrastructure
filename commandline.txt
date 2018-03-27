@@ -14,7 +14,7 @@ aws cloudformation validate-template --template-body file://infrastructure.yaml 
 
 # --parameter-overrides Key1=Value1 Key2=Value2 
 
-aws cloudformation deploy --stack-name abelperezmartinez-yaml --template-file infrastructure.yaml --profile serverless-web
+aws cloudformation deploy --stack-name abelperezmartinez-yaml --template-file infrastructure.yaml --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --profile serverless-web
 
 
 

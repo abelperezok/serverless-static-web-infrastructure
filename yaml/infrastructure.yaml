@@ -143,9 +143,32 @@ Resources:
       HostedZoneName: !Sub ${DomainName}.
       Name: !Sub ${DomainName}.
       Type: A
-
-
-
+  # CodeCommit repository
+  CodeCommitRepository:
+     Type: AWS::CodeCommit::Repository
+     Properties:
+      RepositoryDescription: Repository to store de source code
+      RepositoryName: !Sub ${SubDomainName}.${DomainName}-web
+  # CodeCommit user & policy
+  CodeCommitUserPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CodeCommitUserPolicy for Repo ${CodeCommitRepository.Name}
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Sid: AllowGitCommandlineOperations
+          Effect: Allow
+          Action:
+            - codecommit:GitPull
+            - codecommit:GitPush
+          Resource: !GetAtt CodeCommitRepository.Arn
+  CodeCommitUser:
+    Type: AWS::IAM::User
+    Properties:
+      ManagedPolicyArns:
+        - !Ref CodeCommitUserPolicy
+      UserName: !Sub ${CodeCommitRepository.Name}-user
 
 
 
