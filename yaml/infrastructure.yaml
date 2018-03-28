@@ -25,6 +25,9 @@ Parameters:
     Type: String
     Default: Z2FDTNDATAQYW2
 
+Conditions:
+  includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
+
 Resources:
   # S3 buckets 
   StaticSiteBucket:
@@ -35,6 +38,7 @@ Resources:
         ErrorDocument: error.html
   RedirectBucket:
     Type: AWS::S3::Bucket
+    Condition: includeRedirect # conditionally created
     Properties:
       WebsiteConfiguration:
         RedirectAllRequestsTo:
@@ -85,6 +89,7 @@ Resources:
           MinimumProtocolVersion: TLSv1.1_2016
   RedirectCloudFront:
     Type: AWS::CloudFront::Distribution
+    Condition: includeRedirect # conditionally created
     Properties:
       DistributionConfig:
         Aliases:
@@ -136,6 +141,7 @@ Resources:
       Type: A
   MainRecordSet:
     Type: AWS::Route53::RecordSet
+    Condition: includeRedirect # conditionally created
     Properties:
       AliasTarget:
         HostedZoneId: !Ref HostedZone
