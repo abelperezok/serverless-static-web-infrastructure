@@ -1,0 +1,11 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - mkdir dist
+      - cp *.html dist/
+
+  post_build:
+    commands:
+      - aws s3 sync ./dist s3://blog-abelperezmartinez-com-staticsitebucket-1nlmw8ar5cmts/ --delete --acl=public-read
