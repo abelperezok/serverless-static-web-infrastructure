@@ -1,3 +1,5 @@
+Description: Template to create the infrastructure for a serverless static website development environment
+
 Parameters:
   DomainName:
     Description: The site domain name.

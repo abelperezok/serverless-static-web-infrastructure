@@ -1,0 +1,29 @@
+Description: Template to create the SSL certificate for Cludfront
+
+Parameters:
+  DomainName:
+    Description: The site domain name (naked domain only).
+    Type: String
+    AllowedPattern: '(?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])'
+    ConstraintDescription: Must be a valid domain name.
+
+Resources:
+  SSLCertificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Sub '*.${DomainName}'
+      SubjectAlternativeNames:
+        - !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Sub '*.${DomainName}'
+          ValidationDomain: !Ref DomainName
+        - DomainName: !Ref DomainName
+          ValidationDomain: !Ref DomainName
+      Tags:
+        - Key: Name
+          Value: !Sub 'SSL certificate for ${DomainName} and subdomains'
+
+Outputs:
+  SSLCertificateArn:
+    Value: !Ref SSLCertificate
+    Description: The ARN of the new SSL Certificate created
