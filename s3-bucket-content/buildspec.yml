@@ -8,4 +8,4 @@ phases:
 
   post_build:
     commands:
-      - aws s3 sync ./dist s3://blog-abelperezmartinez-com-staticsitebucket-1nlmw8ar5cmts/ --delete --acl=public-read
+      - aws s3 sync ./dist s3://<INSERT-YOUR-BUCKET-NAME-HERE>/ --delete --acl=public-read
