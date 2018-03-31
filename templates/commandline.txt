@@ -1,0 +1,16 @@
+# command line to create SSL certificate - only on N. Virginia
+
+aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
+--template-file ssl-certificate.yaml \
+--parameter-overrides DomainName=abelperezmartinez.com \
+--region us-east-1 \
+--profile serverless-web 
+
+# command line to create all other resources - any region
+
+aws cloudformation deploy --stack-name abelperezmartinez-yaml \
+--template-file infrastructure.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides $(cat infrastructure-params.properties) \
+--profile serverless-web
+

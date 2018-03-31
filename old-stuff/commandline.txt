@@ -14,6 +14,19 @@ aws cloudformation validate-template --template-body file://infrastructure.yaml 
 
 # --parameter-overrides Key1=Value1 Key2=Value2 
 
+
+
+#
+# for *.abelperezmartinez.com 
+# arn:aws:acm:us-east-1:976153948458:certificate/e57928e3-8268-468c-8001-5bf011eec0a2
+#
+# for *.abelperez.info
+# arn:aws:acm:us-east-1:976153948458:certificate/ac70d662-f70a-4cce-be8b-81fe1946f348
+#
+
+
+
+
 aws cloudformation deploy --stack-name abelperezmartinez-yaml --template-file infrastructure.yaml --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --profile serverless-web
 
 

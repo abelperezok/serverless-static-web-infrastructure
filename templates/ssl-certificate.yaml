@@ -9,7 +9,7 @@ Parameters:
 
 Resources:
   SSLCertificate:
-    Type: 'AWS::CertificateManager::Certificate'
+    Type: AWS::CertificateManager::Certificate
     Properties:
       DomainName: !Sub '*.${DomainName}'
       SubjectAlternativeNames:
@@ -21,7 +21,7 @@ Resources:
           ValidationDomain: !Ref DomainName
       Tags:
         - Key: Name
-          Value: !Sub 'SSL certificate for ${DomainName} and subdomains'
+          Value: !Sub SSL certificate for ${DomainName} and subdomains
 
 Outputs:
   SSLCertificateArn:
