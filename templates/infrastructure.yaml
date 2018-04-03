@@ -19,15 +19,15 @@ Metadata:
 
     ParameterLabels:
       HostedZone:
-        default: Z2FDTNDATAQYW2 for CloudFront
+        default: HostedZone for CloudFront
       SSLCertificate:
-        default: The ARN of the SSL certificate
+        default: SSL certificate
       DomainName:
-        default: "Main domain name for the website (naked domain)"
+        default: "Domain name"
       SubDomainName:
-        default: "Sub domain for the website"
+        default: "Sub domain"
       IncludeRedirectToSubDomain:
-        default: "Include automatic redirection from naked domain to specified subdomain"
+        default: "Include automatic redirection"
 
 Parameters:
   HostedZone:
@@ -35,15 +35,15 @@ Parameters:
     Type: String
     Default: Z2FDTNDATAQYW2
   SSLCertificate:
-    Description: The SSL certificate must be created / imported in N. Virginia (US-EAST-1) region
+    Description: The Arn of SSL certificate which must be created / imported in N. Virginia (US-EAST-1) region
     Type: String
   DomainName:
-    Description: The site domain name i.e example.com
+    Description: The site domain name only i.e example.com
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])
     ConstraintDescription: Must be a valid domain name.
   SubDomainName:
-    Description: The site subdomain name i.e www
+    Description: The site subdomain name only i.e www
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
     ConstraintDescription: Must be a valid subdomain name.
