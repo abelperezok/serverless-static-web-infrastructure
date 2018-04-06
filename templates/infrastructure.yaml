@@ -317,5 +317,5 @@ Outputs:
     Description: Url to clone the CodeCommit repository via SSH
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh
   S3StaticBucketName:
-    Description: S3 bucket to store website files full name 
+    Description: S3 bucket to store website files full name
     Value: !Ref StaticSiteBucket
