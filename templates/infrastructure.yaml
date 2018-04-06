@@ -57,6 +57,7 @@ Parameters:
 Conditions:
   includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
 
+
 Resources:
   # S3 buckets 
   StaticSiteBucket:
@@ -178,6 +179,8 @@ Resources:
       HostedZoneName: !Sub ${DomainName}.
       Name: !Sub ${DomainName}.
       Type: A
+
+
   # CodeCommit repository
   CodeCommitRepository:
      Type: AWS::CodeCommit::Repository
@@ -304,6 +307,7 @@ Resources:
         - Arn: !GetAtt CodeBuildProject.Arn
           Id: !Sub ${AWS::StackName}-start-build-rule
           RoleArn: !GetAtt CloudWatchEventRuleRole.Arn
+
 
 Outputs:
   CodeCommitRepositoryCloneUrlHttp:

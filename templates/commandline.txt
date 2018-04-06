@@ -4,7 +4,7 @@ aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
 --template-file ssl-certificate.yaml \
 --parameter-overrides DomainName=abelperezmartinez.com \
 --region us-east-1 \
---profile serverless-web 
+--profile serverless-web
 
 # command line to create all other resources - any region
 
@@ -14,3 +14,18 @@ aws cloudformation deploy --stack-name abelperezmartinez-yaml \
 --parameter-overrides $(cat infrastructure-params.properties) \
 --profile serverless-web
 
+
+
+
+# command line to retrieve stack Outputs
+aws cloudformation describe-stacks --stack-name abelperez-info-ssl-stack \
+--query Stacks[0].Outputs \
+--region us-east-1 \
+--profile serverless-web
+
+aws cloudformation describe-stacks --stack-name abelperez-info-infra-stack \
+--query Stacks[0].Outputs \
+--region eu-west-1 \
+--profile serverless-web
+
+# --query 'Stacks[0].Outputs[*].{Key:OutputKey,Value:OutputValue}'
