@@ -72,7 +72,7 @@ Resources:
     Properties:
       WebsiteConfiguration:
         RedirectAllRequestsTo:
-          HostName: !Sub www.${DomainName}
+          HostName: !Sub ${SubDomainName}.${DomainName}
           Protocol: https
   # CloudFront distributions
   WWWCloudFront:
