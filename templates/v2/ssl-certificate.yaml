@@ -1,4 +1,4 @@
-Description: Template to create the SSL certificate for Cludfront
+Description: Template to create the SSL certificate for Cloudfront
 
 Parameters:
   DomainName:

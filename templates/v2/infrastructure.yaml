@@ -52,34 +52,29 @@ Parameters:
     Type: String
     Default: false
     AllowedValues: [true, false]
-
+  LambdaEdgeRedirectFunction:
+    Description: The Arn of Lambda@Edge function, it must be in N. Virginia (US-EAST-1) region
+    Type: String
 
 Conditions:
   includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
 
 
 Resources:
-  # S3 buckets 
+  # S3 bucket
   StaticSiteBucket:
     Type: AWS::S3::Bucket
     Properties:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-  RedirectBucket:
-    Type: AWS::S3::Bucket
-    Condition: includeRedirect # conditionally created
-    Properties:
-      WebsiteConfiguration:
-        RedirectAllRequestsTo:
-          HostName: !Sub www.${DomainName}
-          Protocol: https
-  # CloudFront distributions
+  # CloudFront distribution
   WWWCloudFront:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Aliases:
+          - !If [includeRedirect, !Sub "${DomainName}", !Ref "AWS::NoValue"]
           - !Sub ${SubDomainName}.${DomainName}
         DefaultRootObject: index.html
         CacheBehaviors: []
@@ -104,6 +99,9 @@ Resources:
           MaxTTL: 31536000
           SmoothStreaming: false
           ViewerProtocolPolicy: redirect-to-https
+          LambdaFunctionAssociations:
+            - EventType: viewer-request
+              LambdaFunctionARN: !Ref LambdaEdgeRedirectFunction
         Enabled: true
         HttpVersion: http2
         Origins:
@@ -117,48 +115,7 @@ Resources:
           SslSupportMethod: sni-only
           AcmCertificateArn: !Ref SSLCertificate
           MinimumProtocolVersion: TLSv1.1_2016
-  RedirectCloudFront:
-    Type: AWS::CloudFront::Distribution
-    Condition: includeRedirect # conditionally created
-    Properties:
-      DistributionConfig:
-        Aliases:
-          - !Sub ${DomainName}
-        CacheBehaviors: []
-        DefaultCacheBehavior:
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          Compress: true
-          TargetOriginId: S3Bucket
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: none
-            Headers: []
-          DefaultTTL: 0
-          MinTTL: 0
-          MaxTTL: 31536000
-          SmoothStreaming: false
-          ViewerProtocolPolicy: redirect-to-https
-        Enabled: true
-        HttpVersion: http2
-        Origins:
-          - DomainName: !Select [2, !Split ["/", !GetAtt RedirectBucket.WebsiteURL]]
-            Id: S3Bucket
-            CustomOriginConfig:
-              HTTPPort: 80
-              OriginProtocolPolicy: http-only
-        PriceClass: PriceClass_100
-        ViewerCertificate:
-          SslSupportMethod: sni-only
-          AcmCertificateArn: !Ref SSLCertificate
-          MinimumProtocolVersion: TLSv1.1_2016
+
   # Route53 A record
   WWWRecordSet:
     Type: AWS::Route53::RecordSet
@@ -175,7 +132,7 @@ Resources:
     Properties:
       AliasTarget:
         HostedZoneId: !Ref HostedZone
-        DNSName: !GetAtt RedirectCloudFront.DomainName
+        DNSName: !GetAtt WWWCloudFront.DomainName
       HostedZoneName: !Sub ${DomainName}.
       Name: !Sub ${DomainName}.
       Type: A

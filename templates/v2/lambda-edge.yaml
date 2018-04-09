@@ -1,0 +1,91 @@
+Description: Template to create the Lambda@Edge function
+
+Parameters:
+  DomainName:
+    Description: The site domain name (naked domain only).
+    Type: String
+    AllowedPattern: '(?!-)[a-zA-Z0-9-.]{1,63}(?<![.-])'
+    ConstraintDescription: Must be a valid domain name.
+  SubDomainName:
+    Description: The site subdomain name only i.e www
+    Type: String
+    AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
+    ConstraintDescription: Must be a valid subdomain name.
+
+Resources:
+  AWSLambdaEdgeExecutionPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: AWS Lambda@Edge Execution Policy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Sid: AllowLambdaWriteLogAccess
+          Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource:
+            - "arn:aws:logs:*:*:*"
+
+  AWSLambdaEdgeExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - !Ref AWSLambdaEdgeExecutionPolicy
+
+  CloudFrontHttpCanonicalRedirect:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt AWSLambdaEdgeExecutionRole.Arn
+      Code:
+        ZipFile: !Sub >
+          exports.handler = function(event, context, callback) {
+            const request = event.Records[0].cf.request;
+            const headers = request.headers;
+            const host = headers.host[0].value;
+            if (host !== '${DomainName}') {
+                callback(null, request);
+                return;
+            }
+            const response = {
+                status: '301',
+                statusDescription: 'Moved Permanently',
+                headers: {
+                    location: [{
+                        key: 'Location',
+                        value: 'https://${SubDomainName}.${DomainName}',
+                    }],
+                },
+            };
+            callback(null, response);
+          };
+      Runtime: nodejs6.10
+
+  LambdaEdgeRedirectFunctionVersion2:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName:
+        Ref: CloudFrontHttpCanonicalRedirect
+      Description: Version 2"
+
+Outputs:
+  LambdaEdgeRedirectFunctionArn:
+    Description: ARN of the Lambda@Edge function
+    Value: !GetAtt CloudFrontHttpCanonicalRedirect.Arn
+  LambdaEdgeRedirectFunctionVersion:
+    Value: !GetAtt LambdaEdgeRedirectFunctionVersion2.Version
+  LambdaEdgeRedirectFunctionIncludingVersion:
+    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion2.Version}

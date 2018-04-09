@@ -1,6 +1,6 @@
 # command line to create SSL certificate - only on N. Virginia
 
-aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
+aws cloudformation deploy --stack-name abelperez-info-ssl-stack \
 --template-file ssl-certificate.yaml \
 --parameter-overrides DomainName=abelperezmartinez.com \
 --region us-east-1 \
@@ -8,11 +8,21 @@ aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
 
 # command line to create all other resources - any region
 
-aws cloudformation deploy --stack-name abelperezmartinez-yaml \
+aws cloudformation deploy --stack-name abelperezinfo-test \
 --template-file infrastructure.yaml \
 --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 --parameter-overrides $(cat infrastructure-params.properties) \
 --profile serverless-web
+
+# command line to create lambda@edge - only on N. Virginia
+
+aws cloudformation deploy --stack-name lambda-edge-yaml \
+--template-file lambda-edge.yaml \
+--capabilities CAPABILITY_IAM \
+--parameter-overrides DomainName=abelperez.info SubDomainName=www \
+--region us-east-1 \
+--profile serverless-web
+
 
 
 
@@ -28,4 +38,21 @@ aws cloudformation describe-stacks --stack-name abelperez-info-infra-stack \
 --region eu-west-1 \
 --profile serverless-web
 
+aws cloudformation describe-stacks --stack-name lambda-edge-yaml \
+--query Stacks[0].Outputs \
+--region us-east-1 \
+--profile serverless-web
+
 # --query 'Stacks[0].Outputs[*].{Key:OutputKey,Value:OutputValue}'
+
+
+
+
+
+
+
+
+
+
+
+
