@@ -8,7 +8,13 @@ aws cloudformation deploy --stack-name abelperez-info-ssl-stack \
 
 # command line to create all other resources - any region
 
-aws cloudformation deploy --stack-name abelperezinfo-test \
+aws cloudformation deploy --stack-name www-abelperez-info \
+--template-file infrastructure.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides $(cat infrastructure-params.properties) \
+--profile serverless-web
+
+aws cloudformation deploy --stack-name test-abelperez-info \
 --template-file infrastructure.yaml \
 --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
 --parameter-overrides $(cat infrastructure-params.properties) \
@@ -33,7 +39,7 @@ aws cloudformation describe-stacks --stack-name abelperez-info-ssl-stack \
 --region us-east-1 \
 --profile serverless-web
 
-aws cloudformation describe-stacks --stack-name abelperez-info-infra-stack \
+aws cloudformation describe-stacks --stack-name www-abelperez-info \
 --query Stacks[0].Outputs \
 --region eu-west-1 \
 --profile serverless-web

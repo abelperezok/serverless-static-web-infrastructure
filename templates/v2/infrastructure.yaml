@@ -100,8 +100,12 @@ Resources:
           SmoothStreaming: false
           ViewerProtocolPolicy: redirect-to-https
           LambdaFunctionAssociations:
-            - EventType: viewer-request
-              LambdaFunctionARN: !Ref LambdaEdgeRedirectFunction
+            - !If
+                - includeRedirect
+                -
+                  EventType: viewer-request
+                  LambdaFunctionARN: !Ref LambdaEdgeRedirectFunction
+                - !Ref "AWS::NoValue"
         Enabled: true
         HttpVersion: http2
         Origins:
