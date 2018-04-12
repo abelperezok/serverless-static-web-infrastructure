@@ -1,4 +1,4 @@
-Description: Template to create the Lambda@Edge function
+Description: Template to create the base infrastructure for serverless static website including Lambda@Edge function
 
 Parameters:
   DomainName:
@@ -13,6 +13,21 @@ Parameters:
     ConstraintDescription: Must be a valid subdomain name.
 
 Resources:
+  SSLCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Sub '*.${DomainName}'
+      SubjectAlternativeNames:
+        - !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Sub '*.${DomainName}'
+          ValidationDomain: !Ref DomainName
+        - DomainName: !Ref DomainName
+          ValidationDomain: !Ref DomainName
+      Tags:
+        - Key: Name
+          Value: !Sub SSL certificate for ${DomainName} and subdomains
+
   AWSLambdaEdgeExecutionPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
@@ -74,18 +89,21 @@ Resources:
           };
       Runtime: nodejs6.10
 
-  LambdaEdgeRedirectFunctionVersion2:
+  LambdaEdgeRedirectFunctionVersion0:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName:
         Ref: CloudFrontHttpCanonicalRedirect
-      Description: Version 2"
+      Description: Version 0"
 
 Outputs:
   LambdaEdgeRedirectFunctionArn:
     Description: ARN of the Lambda@Edge function
     Value: !GetAtt CloudFrontHttpCanonicalRedirect.Arn
   LambdaEdgeRedirectFunctionVersion:
-    Value: !GetAtt LambdaEdgeRedirectFunctionVersion2.Version
+    Value: !GetAtt LambdaEdgeRedirectFunctionVersion0.Version
   LambdaEdgeRedirectFunctionIncludingVersion:
-    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion2.Version}
+    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion0.Version}
+  SSLCertificateArn:
+    Value: !Ref SSLCertificate
+    Description: The ARN of the new SSL Certificate created

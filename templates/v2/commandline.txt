@@ -1,33 +1,31 @@
-# command line to create SSL certificate - only on N. Virginia
+# command line to create lambda@edge & SSL Certificate - only on N. Virginia
 
-aws cloudformation deploy --stack-name abelperez-info-ssl-stack \
---template-file ssl-certificate.yaml \
---parameter-overrides DomainName=abelperezmartinez.com \
---region us-east-1 \
---profile serverless-web
-
-# command line to create all other resources - any region
-
-aws cloudformation deploy --stack-name www-abelperez-info \
---template-file infrastructure.yaml \
---capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
---parameter-overrides $(cat infrastructure-params.properties) \
---profile serverless-web
-
-aws cloudformation deploy --stack-name test-abelperez-info \
---template-file infrastructure.yaml \
---capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
---parameter-overrides $(cat infrastructure-params.properties) \
---profile serverless-web
-
-# command line to create lambda@edge - only on N. Virginia
-
-aws cloudformation deploy --stack-name lambda-edge-yaml \
---template-file lambda-edge.yaml \
+aws cloudformation deploy --stack-name abelperezmartinez-base-v2 \
+--template-file base-infra.yaml \
 --capabilities CAPABILITY_IAM \
---parameter-overrides DomainName=abelperez.info SubDomainName=www \
+--parameter-overrides $(cat base-infra-params.conf) \
 --region us-east-1 \
 --profile serverless-web
+
+
+
+
+# command line to create web resources - any region
+
+aws cloudformation deploy --stack-name www-abelperezmartinez-com-web-v2 \
+--template-file web-infra.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides $(cat web-infra-params.conf) \
+--profile serverless-web
+
+# command line to create build pipeline resources - any region
+
+aws cloudformation deploy --stack-name www-abelperezmartinez-com-build-v2 \
+--template-file build-infra.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides $(cat build-infra-params.conf) \
+--profile serverless-web
+
 
 
 
@@ -48,9 +46,6 @@ aws cloudformation describe-stacks --stack-name lambda-edge-yaml \
 --query Stacks[0].Outputs \
 --region us-east-1 \
 --profile serverless-web
-
-# --query 'Stacks[0].Outputs[*].{Key:OutputKey,Value:OutputValue}'
-
 
 
 

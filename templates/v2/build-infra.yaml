@@ -1,0 +1,144 @@
+Description: Template to create the infrastructure for serverless website build pipeline
+
+Parameters:
+  StaticSiteBucketArn:
+    Description: Static website bucket ARN - this is where the website will be deployed.
+    Type: String
+
+
+Resources:
+  # CodeCommit repository
+  CodeCommitRepository:
+     Type: AWS::CodeCommit::Repository
+     Properties:
+      RepositoryDescription: Repository to store de source code
+      RepositoryName: !Sub ${AWS::StackName}-gitrepo
+  # CodeCommit user & policy
+  CodeCommitUserPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CodeCommitUserPolicy for Repo ${CodeCommitRepository.Name}
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Sid: AllowGitCommandlineOperations
+          Effect: Allow
+          Action:
+            - codecommit:GitPull
+            - codecommit:GitPush
+          Resource: !GetAtt CodeCommitRepository.Arn
+  CodeCommitUser:
+    Type: AWS::IAM::User
+    Properties:
+      ManagedPolicyArns:
+        - !Ref CodeCommitUserPolicy
+  # CodeBuild project, Role and Policy
+  CodeBuildUserPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CodeBuildUserPolicy for CodeBuild project ${AWS::StackName}-builder
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AccessLogGroupsS3ListObjects
+            Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - s3:ListObjects
+            Resource: "*"
+          - Sid: AccessGitLogs
+            Effect: Allow
+            Action:
+              - codecommit:GitPull
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder
+              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-builder:*
+              - !GetAtt CodeCommitRepository.Arn
+          - Sid: AccessS3staticBucket
+            Effect: Allow
+            Action: s3:*
+            Resource:
+              - !Ref StaticSiteBucketArn
+              - !Sub ${StaticSiteBucketArn}/*
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - !Ref CodeBuildUserPolicy
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${AWS::StackName}-builder
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/nodejs:7.0.0
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODECOMMIT
+        Location: !GetAtt CodeCommitRepository.CloneUrlHttp
+      TimeoutInMinutes: 5
+  # CloudWatch event rule, Role and Policy
+  CloudWatchEventRulePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub CloudWatchEventRulePolicy for CloudWatch event rule ${AWS::StackName}-start-build-rule
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - codebuild:StartBuild
+            Resource:
+              - !GetAtt CodeBuildProject.Arn
+  CloudWatchEventRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - !Ref CloudWatchEventRulePolicy
+  AutomaticBuildRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Connects changes in CodeCommit to start CodeBuild project buid
+      RoleArn: !GetAtt CloudWatchEventRuleRole.Arn
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - CodeCommit Repository State Change
+        resources:
+          - !GetAtt CodeCommitRepository.Arn
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt CodeBuildProject.Arn
+          Id: !Sub ${AWS::StackName}-start-build-rule
+          RoleArn: !GetAtt CloudWatchEventRuleRole.Arn
+
+
+Outputs:
+  CodeCommitRepositoryCloneUrlHttp:
+    Description: Url to clone the CodeCommit repository via HTTPS
+    Value: !GetAtt CodeCommitRepository.CloneUrlHttp
+  CodeCommitRepositoryCloneUrlSsh:
+    Description: Url to clone the CodeCommit repository via SSH
+    Value: !GetAtt CodeCommitRepository.CloneUrlSsh
