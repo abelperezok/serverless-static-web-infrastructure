@@ -142,3 +142,6 @@ Outputs:
   CodeCommitRepositoryCloneUrlSsh:
     Description: Url to clone the CodeCommit repository via SSH
     Value: !GetAtt CodeCommitRepository.CloneUrlSsh
+  CodeCommitUserName:
+    Description: The IAM user that has access to CodeCommit repository
+    Value: !Ref CodeCommitUser
