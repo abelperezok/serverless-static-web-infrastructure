@@ -1,0 +1,100 @@
+# create SSL certificate stack in US East-1 N. Virginia
+
+SSL_STACK_NAME=abelperez-info-ssl
+DOMAIN_NAME=abelperez.info
+
+aws cloudformation deploy --stack-name $SSL_STACK_NAME \
+--template-file ssl-certificate.yaml \
+--parameter-overrides DOMAIN_NAME=$DOMAIN_NAME \
+--region us-east-1
+
+------ pre requisites ------------------------
+AWS account 
+Route 53 - Hosted zone for the given domain
+
+aws configure default region i.e eu-west-1
+aws configure create profile (optional)
+install jq i.e sudo apt-get install jq
+
+
+------- template v1 --------------------------
+-------------------------- testing with abelperezmartinez.com instead ------------------------------
+
+SSL_STACK_NAME=abelperezmartinez-com-ssl
+DOMAIN_NAME=abelperezmartinez.com
+
+aws cloudformation deploy --stack-name $SSL_STACK_NAME \
+--template-file ssl-certificate.yaml \
+--parameter-overrides DomainName=$DOMAIN_NAME \
+--region us-east-1
+
+>>>
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperezmartinez-com-ssl
+
+
+SSL_CERT_ARN=`aws cloudformation describe-stacks --stack-name $SSL_STACK_NAME \
+--query Stacks[0].Outputs \
+--region us-east-1 \
+| jq -r '.[] | select(.OutputKey == "SSLCertificateArn").OutputValue'`
+
+echo $SSL_CERT_ARN
+>>>arn:aws:acm:us-east-1:976153948458:certificate/69fbad8c-dec7-4555-95ec-eb59a753c09c
+
+
+INFRA_STACK_NAME=abelperezmartinez-com-infra
+
+
+aws cloudformation deploy --stack-name $INFRA_STACK_NAME \
+--template-file infrastructure.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides DomainName=$DOMAIN_NAME SSLCertificate=$SSL_CERT_ARN SubDomainName=web
+
+>>>
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperezmartinez-com-infra
+
+
+
+
+CC_SSH_URL=`aws cloudformation describe-stacks --stack-name $INFRA_STACK_NAME \
+--query Stacks[0].Outputs \
+| jq -r '.[] | select(.OutputKey == "CodeCommitRepositoryCloneUrlSsh").OutputValue'`
+
+S3_BUCKET_NAME=`aws cloudformation describe-stacks --stack-name $INFRA_STACK_NAME \
+--query Stacks[0].Outputs \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketName").OutputValue'`
+
+CC_USER_NAME=`aws cloudformation describe-stacks --stack-name $INFRA_STACK_NAME \
+--query Stacks[0].Outputs \
+| jq -r '.[] | select(.OutputKey == "CodeCommitUserName").OutputValue'`
+
+
+------------ manual steps --- ssh key --------------
+
+SSH_KEY_FILE=~/.ssh/aws_cc_rsa
+
+ssh-keygen -t rsa -b 4096 -C "Abel Perez Martinez" -f $SSH_KEY_FILE -N ""
+
+eval "$(ssh-agent -s)"
+ssh-add $SSH_KEY_FILE
+
+
+CC_SSH_KEY_ID=`aws iam upload-ssh-public-key --user-name $CC_USER_NAME \
+--ssh-public-key-body "$(cat $SSH_KEY_FILE.pub)" \
+--query SSHPublicKey.SSHPublicKeyId
+--output text`
+
+
+
+cat >>test.txt <<EOF
+# Credentials for Account1
+Host awscc-account1                                 # 'awscc-account1' is a name you pick
+  Hostname git-codecommit.us-east-1.amazonaws.com   # This points to CodeCommit in the 'US East' region
+  User $CC_SSH_KEY_ID                         # UserID as provided by IAM Security Credentials (SSH)
+  IdentityFile ~/.ssh/account1-awsCC-rsa            # Path to corresponding key file
+EOF
+
+ssh://git-codecommit.eu-west-1.amazonaws.com/v1/repos/web.abelperezmartinez.com-web

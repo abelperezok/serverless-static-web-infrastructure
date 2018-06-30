@@ -1,10 +1,11 @@
 # command line to create SSL certificate - only on N. Virginia
 
-aws cloudformation deploy --stack-name abelperezmartinez-ssl-stack \
+aws cloudformation deploy --stack-name abelperez-info-ssl \
 --template-file ssl-certificate.yaml \
---parameter-overrides DomainName=abelperezmartinez.com \
---region us-east-1 \
---profile serverless-web
+--parameter-overrides DomainName=abelperez.info \
+--region us-east-1
+
+# --profile serverless-web
 
 # command line to create all other resources - any region
 

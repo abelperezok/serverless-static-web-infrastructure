@@ -30,9 +30,8 @@ aws cloudformation deploy --stack-name www-abelperezmartinez-com-build-v2 \
 
 
 
-
 # command line to retrieve stack Outputs
-aws cloudformation describe-stacks --stack-name abelperez-info-ssl-stack \
+aws cloudformation describe-stacks --stack-name abelperezmartinez-base-v2 \
 --query Stacks[0].Outputs \
 --region us-east-1 \
 --profile serverless-web
@@ -48,6 +47,22 @@ aws cloudformation describe-stacks --stack-name lambda-edge-yaml \
 --profile serverless-web
 
 
+
+sudo apt-get install jq
+
+
+STACKNAME=abelperezmartinez-base-v2
+echo $STACKNAME
+>>>abelperezmartinez-base-v2
+
+LAMBDAFN=`aws cloudformation describe-stacks --stack-name $STACKNAME \
+--query Stacks[0].Outputs \
+--region us-east-1 \
+--profile serverless-web \
+| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionIncludingVersion").OutputValue'`
+
+echo $LAMBDAFN
+>>>arn:aws:lambda:us-east-1:976153948458:function:abelperezmartinez-base-v2-CloudFrontHttpCanonicalR-10GRJW7WOAW5M:1
 
 
 
