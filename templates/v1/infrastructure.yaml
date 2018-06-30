@@ -319,3 +319,6 @@ Outputs:
   S3StaticBucketName:
     Description: S3 bucket to store website files full name
     Value: !Ref StaticSiteBucket
+  CodeCommitUserName:
+    Description: The IAM user that has access to CodeCommit repository
+    Value: !Ref CodeCommitUser
