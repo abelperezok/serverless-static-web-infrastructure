@@ -20,6 +20,8 @@ install jq i.e sudo apt-get install jq
 ------- template v1 --------------------------
 -------------------------- testing with abelperezmartinez.com instead ------------------------------
 
+------ start on directory -- templates/v1 -----------
+
 SSL_STACK_NAME=abelperezmartinez-com-ssl
 DOMAIN_NAME=abelperezmartinez.com
 
@@ -84,17 +86,54 @@ ssh-add $SSH_KEY_FILE
 
 CC_SSH_KEY_ID=`aws iam upload-ssh-public-key --user-name $CC_USER_NAME \
 --ssh-public-key-body "$(cat $SSH_KEY_FILE.pub)" \
---query SSHPublicKey.SSHPublicKeyId
+--query SSHPublicKey.SSHPublicKeyId \
 --output text`
 
+echo $CC_SSH_KEY_ID
+>>>APK0123456789ABCDEFG
 
+CC_SSH_HOST=`echo $CC_SSH_URL | sed 's/ssh\:\/\///' | sed 's/\/.*//'`
 
-cat >>test.txt <<EOF
+echo $CC_SSH_HOST
+>>>git-codecommit.eu-west-1.amazonaws.com
+
+CC_SSH_VHOST=awscodecommit-user1
+
+cat >>~/.ssh/config <<EOF
+
+#
 # Credentials for Account1
-Host awscc-account1                                 # 'awscc-account1' is a name you pick
-  Hostname git-codecommit.us-east-1.amazonaws.com   # This points to CodeCommit in the 'US East' region
-  User $CC_SSH_KEY_ID                         # UserID as provided by IAM Security Credentials (SSH)
-  IdentityFile ~/.ssh/account1-awsCC-rsa            # Path to corresponding key file
+#
+# '$CC_SSH_VHOST' is a name you pick
+# '$CC_SSH_HOST' points to CodeCommit in the '$(aws configure get default.region)' region
+# '$CC_SSH_KEY_ID' UserID as provided by IAM Security Credentials (SSH)
+# '$SSH_KEY_FILE' Path to corresponding key file
+
+Host $CC_SSH_VHOST
+  Hostname $CC_SSH_HOST
+  User $CC_SSH_KEY_ID
+  IdentityFile $SSH_KEY_FILE
+
 EOF
 
-ssh://git-codecommit.eu-west-1.amazonaws.com/v1/repos/web.abelperezmartinez.com-web
+CC_SSH_CLONE_URL=`echo $CC_SSH_URL | sed "s/$CC_SSH_HOST/$CC_SSH_VHOST/"`
+
+echo $CC_SSH_CLONE_URL
+
+>>>ssh://awscodecommit-web-abel/v1/repos/web.abelperezmartinez.com-web
+
+CC_LOCAL_REPO=~/Desktop/repo
+
+git clone $CC_SSH_CLONE_URL $CC_LOCAL_REPO
+
+
+>>>
+Cloning into '/home/abel/Desktop/repo'...
+warning: You appear to have cloned an empty repository.
+
+
+----- still in tempaltes/v1 folder -----
+
+cp -r ../../s3-bucket-content/* $CC_LOCAL_REPO
+
+cd $CC_LOCAL_REPO
