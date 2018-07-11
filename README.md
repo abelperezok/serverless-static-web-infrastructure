@@ -10,8 +10,6 @@ This repository contains a set of AWS CloudFormation templates to automate the c
 
 ## AWS resources created - v1
 
-![v1](https://s3-eu-west-1.amazonaws.com/abelperezmartinez.blogspot.com/lambda%40edge/web-base-infra-v1.png)
-
 After creating stacks based on these templates you'll have in your account the following resources:
 
 * AWS::CertificateManager::Certificate (US-EAST-1)
@@ -26,8 +24,6 @@ After creating stacks based on these templates you'll have in your account the f
 * AWS::Events::Rule
 
 ## AWS resources created - v2
-
-![v2](https://s3-eu-west-1.amazonaws.com/abelperezmartinez.blogspot.com/lambda%40edge/web-base-infra-v2.png)
 
 After creating stacks based on these templates you'll have in your account the following resources:
 
