@@ -24,6 +24,21 @@ install jq i.e sudo apt-get install jq
 
 SSL_STACK_NAME=abelperezmartinez-com-ssl
 DOMAIN_NAME=abelperezmartinez.com
+SUB_DOMAIN_NAME=web
+INFRA_STACK_NAME=abelperezmartinez-com-infra
+SSL_CERT_ARN=
+CC_SSH_URL=
+S3_BUCKET_NAME=
+CC_USER_NAME=
+SSH_KEY_FILE=~/.ssh/aws_cc_rsa
+CC_SSH_KEY_ID=
+CC_SSH_HOST=
+CC_SSH_VHOST=awscodecommit-user1
+CC_SSH_CLONE_URL=
+CC_LOCAL_REPO=~/Desktop/repo
+
+
+
 
 aws cloudformation deploy --stack-name $SSL_STACK_NAME \
 --template-file ssl-certificate.yaml \
@@ -45,13 +60,12 @@ echo $SSL_CERT_ARN
 >>>arn:aws:acm:us-east-1:976153948458:certificate/69fbad8c-dec7-4555-95ec-eb59a753c09c
 
 
-INFRA_STACK_NAME=abelperezmartinez-com-infra
 
 
 aws cloudformation deploy --stack-name $INFRA_STACK_NAME \
 --template-file infrastructure.yaml \
 --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
---parameter-overrides DomainName=$DOMAIN_NAME SSLCertificate=$SSL_CERT_ARN SubDomainName=web
+--parameter-overrides DomainName=$DOMAIN_NAME SSLCertificate=$SSL_CERT_ARN SubDomainName=$SUB_DOMAIN_NAME
 
 >>>
 Waiting for changeset to be created..
@@ -137,3 +151,146 @@ warning: You appear to have cloned an empty repository.
 cp -r ../../s3-bucket-content/* $CC_LOCAL_REPO
 
 cd $CC_LOCAL_REPO
+
+
+echo $S3_BUCKET_NAME
+>>>abelperezmartinez-com-infra-staticsitebucket-19xwzmq9byn2q
+
+sed -i "s/<INSERT-YOUR-BUCKET-NAME-HERE>/$S3_BUCKET_NAME/" buildspec.yml
+
+cat buildspec.yml
+>>>
+```version: 0.2
+
+phases:
+  build:
+    commands:
+      - mkdir dist
+      - cp *.html dist/
+
+  post_build:
+    commands:
+      - aws s3 sync ./dist s3://abelperezmartinez-com-infra-staticsitebucket-19xwzmq9byn2q/ --delete --acl=public-read
+```
+
+
+------- using it - first commit -------
+
+git add *
+
+git commit -m "initial commit"
+>>>
+[master (root-commit) d6abce7] initial commit
+ Committer: Abel Perez Martinez <abel@ABEL-DESKTOP>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 2 files changed, 16 insertions(+)
+ create mode 100644 buildspec.yml
+ create mode 100644 index.html
+>>>
+
+git push
+>>>
+Counting objects: 4, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 476 bytes | 0 bytes/s, done.
+Total 4 (delta 0), reused 0 (delta 0)
+To ssh://awscodecommit-web-abel/v1/repos/web.abelperezmartinez.com-web
+ * [new branch]      master -> master
+
+
+------- testing it work ----------
+
+curl -I -L http://web.abelperezmartinez.com
+
+HTTP/1.1 301 Moved Permanently
+Server: CloudFront
+Date: Fri, 13 Jul 2018 21:26:09 GMT
+Content-Type: text/html
+Content-Length: 183
+Connection: keep-alive
+Location: https://web.abelperezmartinez.com/
+X-Cache: Redirect from cloudfront
+Via: 1.1 b425f20c7d18ed367f8a08faf4c7fd23.cloudfront.net (CloudFront)
+X-Amz-Cf-Id: 0w78kcs_3ocNkORAUMbUMWDecMG2jHAIGIieBtOK8PH4R5TBhJBHxQ==
+
+HTTP/2 200 
+content-type: text/html
+content-length: 63
+date: Fri, 13 Jul 2018 21:25:38 GMT
+last-modified: Fri, 13 Jul 2018 21:24:35 GMT
+etag: "718cc063505bfef21d939b65780c898f"
+server: AmazonS3
+x-cache: RefreshHit from cloudfront
+via: 1.1 d2458a4f6c40dc75a7c4afbe573a1387.cloudfront.net (CloudFront)
+x-amz-cf-id: qYocWytFI88C0OoFRZUX0aBNP2IU6n4DQ8Fgbj5MHbbej2CoSbE4iA==
+
+curl -L http://web.abelperezmartinez.com
+
+<html>
+<body>
+<h1>Hello from S3 bucket :) </h1>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+## AWS resources created - v1
+
+After creating stacks based on these templates you'll have in your account the following resources:
+
+* AWS::CertificateManager::Certificate (US-EAST-1)
+* 2 x AWS::S3::Bucket (if not using redirection, only 1)
+* 2 x AWS::CloudFront::Distribution (if not using redirection, only 1)
+* 2 x AWS::Route53::RecordSet (if not using redirection, only 1)
+* AWS::CodeCommit::Repository 
+* AWS::IAM::User (user to interact with git)
+* 2 x AWS::IAM::Role (CodeBuild project and CloudWatch event rule)
+* 3 x AWS::IAM::ManagedPolicy (user and the two roles)
+* AWS::CodeBuild::Project
+* AWS::Events::Rule
+
+## AWS resources created - v2
+
+After creating stacks based on these templates you'll have in your account the following resources:
+
+### Base infrastructure (US-EAST-1 Edge network)
+* AWS::CertificateManager::Certificate 
+* AWS::IAM::ManagedPolicy 
+* AWS::IAM::Role
+* AWS::Lambda::Function
+* AWS::Lambda::Version
+
+### Web infrastructure
+* AWS::S3::Bucket
+* AWS::CloudFront::Distribution
+* 2 x AWS::Route53::RecordSet (if not using redirection, only 1)
+
+### Build pipeline infrastructure
+* AWS::CodeCommit::Repository
+* AWS::IAM::User
+* 2 x AWS::IAM::Role
+* 3 x AWS::IAM::ManagedPolicy
+* AWS::CodeBuild::Project
+* AWS::Events::Rule
