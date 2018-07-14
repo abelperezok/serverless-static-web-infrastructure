@@ -55,7 +55,7 @@ $ SSL_STACK_NAME=abelperez-info-ssl
 ```
 Deploy ```ssl-certificate``` CloudFormation template in N.Virginia (us-east-1) region 
 
-```shell
+```bash
 $ aws cloudformation deploy --stack-name $SSL_STACK_NAME \
 --template-file ssl-certificate.yaml \
 --parameter-overrides DomainName=$DOMAIN_NAME \
@@ -69,7 +69,7 @@ Successfully created/updated stack - abelperez-info-ssl
 
 At this point you must have received the emails from ACM and validated domain ownership. Next, get the SSL certificate ARN to be used in further steps.
 
-```shell
+```bash
 $ SSL_CERT_ARN=`aws cloudformation describe-stacks --stack-name $SSL_STACK_NAME \
 --query Stacks[0].Outputs \
 --region us-east-1 \
