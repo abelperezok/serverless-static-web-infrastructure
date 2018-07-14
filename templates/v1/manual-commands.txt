@@ -1,13 +1,5 @@
 # create SSL certificate stack in US East-1 N. Virginia
 
-SSL_STACK_NAME=abelperez-info-ssl
-DOMAIN_NAME=abelperez.info
-
-aws cloudformation deploy --stack-name $SSL_STACK_NAME \
---template-file ssl-certificate.yaml \
---parameter-overrides DOMAIN_NAME=$DOMAIN_NAME \
---region us-east-1
-
 ------ pre requisites ------------------------
 AWS account 
 Route 53 - Hosted zone for the given domain
@@ -41,7 +33,7 @@ SSL_CERT_VALUE=`echo $SSL_CERT_JSON \
 | jq -r ".[] | select(.DomainName == \"$DOMAIN_NAME\").ResourceRecord.Value"`
 
 
------- validte domain using DNS ---------
+------ validate domain using DNS ---------
 
 R53_HOSTED_ZONE=`aws route53 list-hosted-zones-by-name \
 --dns-name $DOMAIN_NAME \
@@ -93,6 +85,7 @@ aws acm wait certificate-validated \
 
 SSL_STACK_NAME=abelperezmartinez-com-ssl
 DOMAIN_NAME=abelperezmartinez.com
+
 SUB_DOMAIN_NAME=web
 INFRA_STACK_NAME=abelperezmartinez-com-infra
 SSL_CERT_ARN=
@@ -118,7 +111,7 @@ aws cloudformation deploy --stack-name $SSL_STACK_NAME \
 Waiting for changeset to be created..
 Waiting for stack create/update to complete
 Successfully created/updated stack - abelperezmartinez-com-ssl
-
+>>>
 
 SSL_CERT_ARN=`aws cloudformation describe-stacks --stack-name $SSL_STACK_NAME \
 --query Stacks[0].Outputs \
