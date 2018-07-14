@@ -60,7 +60,8 @@ $ aws cloudformation deploy --stack-name $SSL_STACK_NAME \
 --template-file ssl-certificate.yaml \
 --parameter-overrides DomainName=$DOMAIN_NAME \
 --region us-east-1
-
+```
+```
 Waiting for changeset to be created..
 Waiting for stack create/update to complete
 Successfully created/updated stack - abelperez-info-ssl
