@@ -46,7 +46,7 @@ aws route53 list-resource-record-sets --hosted-zone-id $R53_HOSTED_ZONE
 
 read -r -d '' R53_CNAME_JSON << EOM
 {
-  "Comment": "DNS Validation DNS record",
+  "Comment": "DNS Validation CNAME record",
   "Changes": [
     {
       "Action": "CREATE",
@@ -77,6 +77,11 @@ aws acm wait certificate-validated \
 --certificate-arn $SSL_CERT_ARN \
 --region us-east-1
 
+
+aws acm describe-certificate \
+--certificate-arn $SSL_CERT_ARN \
+--query Certificate.Status \
+--region us-east-1
 
 
 -------------------------- testing with abelperezmartinez.com instead ------------------------------
@@ -121,7 +126,7 @@ SSL_CERT_ARN=`aws cloudformation describe-stacks --stack-name $SSL_STACK_NAME \
 echo $SSL_CERT_ARN
 >>>arn:aws:acm:us-east-1:976153948458:certificate/69fbad8c-dec7-4555-95ec-eb59a753c09c
 
-
+--- end of ssl certificate ---
 
 
 aws cloudformation deploy --stack-name $INFRA_STACK_NAME \
