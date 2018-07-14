@@ -18,6 +18,75 @@ install jq i.e sudo apt-get install jq
 
 
 ------- template v1 --------------------------
+----- create SSL certificate using DNS validation ---------
+DOMAIN_NAME=abelperez.info
+
+SSL_CERT_ARN=`aws acm request-certificate \
+--domain-name $DOMAIN_NAME \
+--subject-alternative-names *.$DOMAIN_NAME \
+--validation-method DNS \
+--query CertificateArn \
+--region us-east-1 \
+--output text`
+
+SSL_CERT_JSON=`aws acm describe-certificate \
+--certificate-arn $SSL_CERT_ARN \
+--query Certificate.DomainValidationOptions \
+--region us-east-1`
+
+SSL_CERT_NAME=`echo $SSL_CERT_JSON \
+| jq -r ".[] | select(.DomainName == \"$DOMAIN_NAME\").ResourceRecord.Name"`
+
+SSL_CERT_VALUE=`echo $SSL_CERT_JSON \
+| jq -r ".[] | select(.DomainName == \"$DOMAIN_NAME\").ResourceRecord.Value"`
+
+
+------ validte domain using DNS ---------
+
+R53_HOSTED_ZONE=`aws route53 list-hosted-zones-by-name \
+--dns-name $DOMAIN_NAME \
+--query HostedZones \
+| jq -r ".[] | select(.Name == \"$DOMAIN_NAME.\").Id" \
+| sed 's/\/hostedzone\///'`
+
+
+aws route53 list-resource-record-sets --hosted-zone-id $R53_HOSTED_ZONE
+
+read -r -d '' R53_CNAME_JSON << EOM
+{
+  "Comment": "DNS Validation DNS record",
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "$SSL_CERT_NAME",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [
+          {
+            "Value": "$SSL_CERT_VALUE"
+          }
+        ]
+      }
+    }
+  ]
+}
+EOM
+
+R53_CNAME_ID=`aws route53 change-resource-record-sets \
+--hosted-zone-id $R53_HOSTED_ZONE \
+--change-batch "$R53_CNAME_JSON" \
+--query ChangeInfo.Id \
+--output text`
+
+aws route53 wait resource-record-sets-changed --id $R53_CNAME_ID
+
+aws acm wait certificate-validated \
+--certificate-arn $SSL_CERT_ARN \
+--region us-east-1
+
+
+
 -------------------------- testing with abelperezmartinez.com instead ------------------------------
 
 ------ start on directory -- templates/v1 -----------

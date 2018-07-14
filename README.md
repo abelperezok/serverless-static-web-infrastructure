@@ -35,7 +35,7 @@ By using these templates, you'll get the following ready to use:
 
 ### General parameters
 
-* DomainName - The site domain name (naked domain only), this is used to create the SSL certificate for the given domain and subdomains as Subject Alternative Names field value.
+* DomainName - The site domain name (naked domain only), this is used to create the SSL certificate for the given domain and sub domains as Subject Alternative Names field value.
 * SubDomainName - The site sub domain name (sub domain only), this is used to create DNS entry in Route 53, typical values are www, blog, etc.
 * IncludeRedirectToSubDomain - Determines whether we want to create an automatic redirection rule from the naked domain to specified sub domain, typically is used to create a redirect from abelperez.info to www.abelperez.info totally automatic.
 
@@ -48,3 +48,7 @@ Each CloudFormation stack requires a name, this name will be used to compose all
 * SSH Key file name - I chose to use SSH Key to authenticate with Git, for which I suggest to create a new SSH key but you can reuse an existing one if you wish so.
 * CodeCommit alias hostname - I chose to use an alias for each CodeCommit repository host name to avoid confusing IAM user ID and the corresponding SSH key, you can use the default host name provided by AWS if you don't have more than one user and CodeCommit repository in the same region.
 * Local git repo location - Typically a directory inside your local home directory i.e ~/Desktop/repo.
+
+## How to use [version 1 templates](templates/v1/README.md)
+
+## How to use [version 2 templates](templates/v2/README.md)
