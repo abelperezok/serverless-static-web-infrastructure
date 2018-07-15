@@ -317,47 +317,16 @@ curl -L http://web.abelperezmartinez.com
 
 
 
+========== removing the stacks =========
+
+comon issues:
+codecommit user 
+Cannot delete entity, must remove referenced objects first. (Service: AmazonIdentityManagement; Status Code: 409; Error Code: DeleteConflict; Request ID: 14070f65-878f-11e8-bcdc-138f1db22f46)
+
+StaticSiteBucket
+The bucket you tried to delete is not empty (Service: Amazon S3; Status Code: 409; Error Code: BucketNotEmpty; Request ID: C6F5F29EA58BFC3D; S3 Extended Request ID: VjLcE22uYD0f2xkoUpui/KGvkFE2Lb83GWqNFbFv8UZIHhGQ8Lc1UUCeOT5KP616yXAEluLU8L8=)
 
 
 
 
 
-
-## AWS resources created - v1
-
-After creating stacks based on these templates you'll have in your account the following resources:
-
-* AWS::CertificateManager::Certificate (US-EAST-1)
-* 2 x AWS::S3::Bucket (if not using redirection, only 1)
-* 2 x AWS::CloudFront::Distribution (if not using redirection, only 1)
-* 2 x AWS::Route53::RecordSet (if not using redirection, only 1)
-* AWS::CodeCommit::Repository 
-* AWS::IAM::User (user to interact with git)
-* 2 x AWS::IAM::Role (CodeBuild project and CloudWatch event rule)
-* 3 x AWS::IAM::ManagedPolicy (user and the two roles)
-* AWS::CodeBuild::Project
-* AWS::Events::Rule
-
-## AWS resources created - v2
-
-After creating stacks based on these templates you'll have in your account the following resources:
-
-### Base infrastructure (US-EAST-1 Edge network)
-* AWS::CertificateManager::Certificate 
-* AWS::IAM::ManagedPolicy 
-* AWS::IAM::Role
-* AWS::Lambda::Function
-* AWS::Lambda::Version
-
-### Web infrastructure
-* AWS::S3::Bucket
-* AWS::CloudFront::Distribution
-* 2 x AWS::Route53::RecordSet (if not using redirection, only 1)
-
-### Build pipeline infrastructure
-* AWS::CodeCommit::Repository
-* AWS::IAM::User
-* 2 x AWS::IAM::Role
-* 3 x AWS::IAM::ManagedPolicy
-* AWS::CodeBuild::Project
-* AWS::Events::Rule

@@ -248,3 +248,218 @@ $ aws acm describe-certificate \
 --region us-east-1
 "ISSUED"
 ```
+
+## Deploy the monolithic template
+
+With the SSL certificate already created and stored in variable $SSL_CERT_ARN, let's define the other variables as input of infrastructure stack. This template can be deployed in any region provided all the services are available on that region.
+
+In this case, IncludeRedirectToSubDomain parameter is set to true, this is useful when defining www as sub domain as a redirect rule will be created from abelperez.info to www.abelperez.info.
+
+```shell
+$ DOMAIN_NAME=abelperez.info
+$ SUB_DOMAIN_NAME=www
+$ INFRA_STACK_NAME=abelperez-info-infra
+```
+
+Deploy the infrastructure stack using the variables previously defined, it can take up to 40 minutes because of the CloudFront distribution that needs to propagate.
+
+```shell
+$ aws cloudformation deploy --stack-name $INFRA_STACK_NAME \
+--template-file infrastructure.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides \
+DomainName=$DOMAIN_NAME \
+SSLCertificate=$SSL_CERT_ARN \
+SubDomainName=$SUB_DOMAIN_NAME \
+IncludeRedirectToSubDomain=true
+```
+```
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperez-info-infra
+```
+
+## Resources configuration
+
+Once this stack is deployed, all resource are provisioned but there are some steps that need to be done in order to be fully operational with these resources.
+
+Outputs from infrastructure stack will be needed in next steps. Store the JSON in a variable for later extraction.
+
+```shell
+$ INFRA_STACK_OUTPUTS=`aws cloudformation describe-stacks \
+--stack-name $INFRA_STACK_NAME \
+--query Stacks[0].Outputs`
+```
+
+Extract CodeCommit repository clone url via SSH.
+
+```shell
+$ CC_SSH_URL=`echo $INFRA_STACK_OUTPUTS \
+| jq -r '.[] | select(.OutputKey == "CodeCommitRepositoryCloneUrlSsh").OutputValue'`
+```
+
+Extract S3 bucket name to store static files.
+
+```shell
+$ S3_BUCKET_NAME=`echo $INFRA_STACK_OUTPUTS \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketName").OutputValue'`
+```
+
+Extract CodeCommit user name to associate with an SSH key.
+
+```shell
+$ CC_USER_NAME=`echo $INFRA_STACK_OUTPUTS \
+| jq -r '.[] | select(.OutputKey == "CodeCommitUserName").OutputValue'`
+```
+
+### Upload SSH key to CodeCommit user
+
+One of the ways to connect to CodeCommit git repository is via SSH key like any other git repository such as GitHub. In the next step we'll create a new SSH key only for this purpose. 
+
+Set the file name in default location.
+
+```shell
+$ SSH_KEY_FILE=~/.ssh/aws_cc_rsa
+```
+
+Create the SSH key, replace your name.
+
+```shell
+$ ssh-keygen -t rsa -b 4096 -C "Your name here" -f $SSH_KEY_FILE -N ""
+```
+
+This might be needed (double check)
+```shell
+$ eval "$(ssh-agent -s)"
+$ ssh-add $SSH_KEY_FILE
+```
+
+Upload the public key to IAM by using the ```upload-ssh-public-key``` command, the convention is the same file name with the .pub extension for public key.
+
+```shell
+$ CC_SSH_KEY_ID=`aws iam upload-ssh-public-key --user-name $CC_USER_NAME \
+--ssh-public-key-body "$(cat $SSH_KEY_FILE.pub)" \
+--query SSHPublicKey.SSHPublicKeyId \
+--output text`
+```
+
+This gives us the user id associated with that public key in IAM. It should look something like this:
+
+```shell
+$ echo $CC_SSH_KEY_ID
+APK0123456789ABCDEFG
+```
+
+### Configure SSH host names
+
+The next step is optional but I recommend it in order to keep SSH configuration tidy. Taken from [this gist](https://gist.github.com/justinpawela/3a7056cd592d688425e59de2ef6f1da0) it's particularly helpful when we have several code commit repositories with different user accounts.
+
+Extract the host name from CodeCommit clone url by using some ```sed``` substitutions. 
+
+```shell
+$ CC_SSH_HOST=`echo $CC_SSH_URL | sed 's/ssh\:\/\///' | sed 's/\/.*//'`
+```
+
+The host name will be something like this:
+
+```shell
+$ echo $CC_SSH_HOST
+git-codecommit.eu-west-1.amazonaws.com
+```
+
+Choose an alias for that host name
+
+```shell
+$ CC_SSH_VHOST=awscodecommit-user1
+```
+
+Prepare the configuration settings block to add to ~/.ssh/config file. Note the blank lines before and after this block, this is to avoid conflicts with previous content in that file.
+
+```shell
+$ cat >>~/.ssh/config <<EOF
+
+#
+# Credentials for Account1
+#
+# '$CC_SSH_VHOST' is a name you pick
+# '$CC_SSH_HOST' points to CodeCommit in the '$(aws configure get default.region)' region
+# '$CC_SSH_KEY_ID' UserID as provided by IAM Security Credentials (SSH)
+# '$SSH_KEY_FILE' Path to corresponding key file
+
+Host $CC_SSH_VHOST
+  Hostname $CC_SSH_HOST
+  User $CC_SSH_KEY_ID
+  IdentityFile $SSH_KEY_FILE
+
+EOF
+```
+
+### Clone the respository
+
+To keep consistency with the configuration above, clone url has to be updated with the chosen virtual host name earlier.
+
+```shell
+$ CC_SSH_CLONE_URL=`echo $CC_SSH_URL | sed "s/$CC_SSH_HOST/$CC_SSH_VHOST/"`
+```
+
+Check the url clone url.
+
+```shell
+$ echo $CC_SSH_CLONE_URL
+ssh://awscodecommit-abelperez-info/v1/repos/www.abelperez.info-web
+```
+
+Choose a local directory to clone the repository.
+
+```shell
+$ CC_LOCAL_REPO=~/Desktop/repo
+```
+
+Clone the repository.
+
+```shell
+$ git clone $CC_SSH_CLONE_URL $CC_LOCAL_REPO
+Cloning into '/home/abel/Desktop/repo'...
+warning: You appear to have cloned an empty repository.
+```
+
+### Put some content in the repository
+
+Assuming current directory is still ```templates/v1```, copy sample s3 bucket content to local repository and move to repository directory.
+
+```shell
+$ cp -r ../../s3-bucket-content/* $CC_LOCAL_REPO
+$ cd $CC_LOCAL_REPO
+```
+
+The sample content consists of a blank HTML file displaying a Hello World message and a basic template for CodeBuild (buildspec.yml) where there is a placeholder for the s3 bucket name which will depend on the stack's output that was captured earlier in variable S3_BUCKET_NAME.
+
+```shell
+$ echo $S3_BUCKET_NAME
+abelperez-info-infra-staticsitebucket-x6e3g8pqm6au
+```
+
+Replace placeholder with actual bucket name.
+
+```shell
+$ sed -i "s/<INSERT-YOUR-BUCKET-NAME-HERE>/$S3_BUCKET_NAME/" buildspec.yml
+```
+
+Verify the variable was expanded correctly.
+
+```shell
+$ cat buildspec.yml
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - mkdir dist
+      - cp *.html dist/
+
+  post_build:
+    commands:
+      - aws s3 sync ./dist s3://abelperezmartinez-com-infra-staticsitebucket-x6e3g8pqm6au/ --delete --acl=public-read
+```
+
+## Start using the repository
