@@ -281,7 +281,7 @@ Successfully created/updated stack - abelperez-info-infra
 
 ## Resources configuration
 
-Once this stack is deployed, all resource are provisioned but there are some steps that need to be done in order to be fully operational with these resources.
+Once this stack is deployed, all resources are provisioned but there are some steps that need to be done in order to be fully operational.
 
 Outputs from infrastructure stack will be needed in next steps. Store the JSON in a variable for later extraction.
 
@@ -370,7 +370,7 @@ git-codecommit.eu-west-1.amazonaws.com
 Choose an alias for that host name
 
 ```shell
-$ CC_SSH_VHOST=awscodecommit-user1
+$ CC_SSH_VHOST=awscodecommit-abelperez-info
 ```
 
 Prepare the configuration settings block to add to ~/.ssh/config file. Note the blank lines before and after this block, this is to avoid conflicts with previous content in that file.
@@ -463,3 +463,91 @@ phases:
 ```
 
 ## Start using the repository
+
+With the sample HTML and buildspec.yml ready, create the initial commit and push to CodeCommit. 
+
+```shell
+$ git add *
+
+$ git commit -m "initial commit"
+[master (root-commit) 6913a87] initial commit
+ Committer: Abel Perez Martinez <abel@ABEL-DESKTOP>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 2 files changed, 16 insertions(+)
+ create mode 100644 buildspec.yml
+ create mode 100644 index.html
+
+$ git push
+Counting objects: 4, done.
+Delta compression using up to 4 threads.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 479 bytes | 0 bytes/s, done.
+Total 4 (delta 0), reused 0 (delta 0)
+To ssh://awscodecommit-abelperez-info/v1/repos/www.abelperez.info-web
+ * [new branch]      master -> master
+
+```
+
+## Testing end to end process
+
+The code has been pushed to CodeCommit, it triggers an event rule in CloudWatch that runs the CodeBuild project build. As part of the build process the HTML files are copied to S3 bucket fronted by CloudFront distribution and behind Route 53 record set alias.
+
+In conclusion, once the build is ready, you should be able to hit your domain name, in this example: abelperez.info.
+
+cURL abelperez.info HTTP endpoint
+
+```shell
+$ curl -L -I http://abelperez.info
+HTTP/1.1 301 Moved Permanently
+Server: CloudFront
+Date: Mon, 16 Jul 2018 22:08:49 GMT
+Content-Type: text/html
+Content-Length: 183
+Connection: keep-alive
+Location: https://abelperez.info/
+X-Cache: Redirect from cloudfront
+Via: 1.1 a8c7fda51c89265d1545dd554cb947c8.cloudfront.net (CloudFront)
+X-Amz-Cf-Id: m2IUgVkI26Y9xsxBDyPZ00UbNyV5zmObhbCof4uMbABigTLMhqNr8Q==
+
+HTTP/2 301 
+content-length: 0
+location: https://www.abelperez.info/
+date: Mon, 16 Jul 2018 22:08:50 GMT
+server: AmazonS3
+x-cache: Miss from cloudfront
+via: 1.1 58f040c89bfa807063443a43cdc364af.cloudfront.net (CloudFront)
+x-amz-cf-id: JadqyiqHZIuts39Y-JA-mHhtEW6qPVeZFiT03orfDd1A9JuVFn2neg==
+
+HTTP/2 200 
+content-type: text/html
+content-length: 63
+date: Mon, 16 Jul 2018 22:07:15 GMT
+last-modified: Mon, 16 Jul 2018 22:03:32 GMT
+etag: "718cc063505bfef21d939b65780c898f"
+server: AmazonS3
+x-cache: RefreshHit from cloudfront
+via: 1.1 6b4507cd5c1f0d33058852263c760f2c.cloudfront.net (CloudFront)
+x-amz-cf-id: gndA0HuKbTjeTcfUgo2_58nqONiBJWb1g_BMiDfrMTcklhWcM5_NXA==
+```
+
+The url redirection rule is working as expected, from HTTP to HTTPS and non-www to www.
+
+```shell
+$ curl -L http://abelperez.info
+<html>
+<body>
+<h1>Hello from S3 bucket :) </h1>
+</body>
+</html>
+```
