@@ -394,7 +394,7 @@ Host $CC_SSH_VHOST
 EOF
 ```
 
-### Clone the respository
+### Clone the repository
 
 To keep consistency with the configuration above, clone url has to be updated with the chosen virtual host name earlier.
 

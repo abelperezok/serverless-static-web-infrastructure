@@ -11,6 +11,12 @@ Parameters:
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
     ConstraintDescription: Must be a valid subdomain name.
+#   SSLCertificate:
+#     Description: The Arn of SSL certificate which must be created / imported in N. Virginia (US-EAST-1) region
+#     Type: String
+
+# Conditions:
+#   includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
 
 Resources:
   SSLCertificate:
