@@ -8,7 +8,7 @@ Metadata:
           default: "External dependencies (US-EAST-1)"
         Parameters:
           - HostedZone
-          - SSLCertificate
+          - SSLCertificateArn
           - LambdaEdgeRedirectFunction
       -
         Label:
@@ -21,7 +21,7 @@ Metadata:
     ParameterLabels:
       HostedZone:
         default: HostedZone for CloudFront
-      SSLCertificate:
+      SSLCertificateArn:
         default: SSL certificate
       DomainName:
         default: Domain name
@@ -37,7 +37,7 @@ Parameters:
     Description: Leave as default value as per AWS documents.
     Type: String
     Default: Z2FDTNDATAQYW2
-  SSLCertificate:
+  SSLCertificateArn:
     Description: The Arn of SSL certificate which must be created / imported in N. Virginia (US-EAST-1) region
     Type: String
   DomainName:
@@ -119,7 +119,7 @@ Resources:
         PriceClass: PriceClass_100
         ViewerCertificate:
           SslSupportMethod: sni-only
-          AcmCertificateArn: !Ref SSLCertificate
+          AcmCertificateArn: !Ref SSLCertificateArn
           MinimumProtocolVersion: TLSv1.1_2016
 
   # Route53 A record
