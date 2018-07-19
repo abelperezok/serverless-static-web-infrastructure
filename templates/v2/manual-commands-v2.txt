@@ -1,34 +1,90 @@
 # command line to create lambda@edge & SSL Certificate - only on N. Virginia
 
 
+ --- using email validation ------------------------
+DOMAIN_NAME=abelperez.info
+SUB_DOMAIN_NAME=test
+BASE_STACK_NAME=abelperez-info-base
+INCLUDE_REDIRECT=true
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-aws cloudformation deploy --stack-name abelperezmartinez-base-v2 \
+aws cloudformation deploy --stack-name $BASE_STACK_NAME \
 --template-file base-infra.yaml \
 --capabilities CAPABILITY_IAM \
---parameter-overrides $(cat base-infra-params.conf) \
---region us-east-1 \
---profile serverless-web
+--parameter-overrides \
+DomainName=$DOMAIN_NAME \
+SubDomainName=$SUB_DOMAIN_NAME \
+IncludeRedirectToSubDomain=$INCLUDE_REDIRECT \
+--region us-east-1
 
+--- using dns validation - arn is ready -and -you want canonical redirection--------
+
+SSL_CERT_ARN=arn:aws:acm:us-east-1:976153948458:certificate/5037f2ae-65ae-4fa1-b93c-b6aacab0cf64
+DOMAIN_NAME=abelperez.info
+SUB_DOMAIN_NAME=test
+BASE_STACK_NAME=abelperez-info-base
+INCLUDE_REDIRECT=true
+
+aws cloudformation deploy --stack-name $BASE_STACK_NAME \
+--template-file base-infra.yaml \
+--capabilities CAPABILITY_IAM \
+--parameter-overrides \
+DomainName=$DOMAIN_NAME \
+SubDomainName=$SUB_DOMAIN_NAME \
+SSLCertificateArn=$SSL_CERT_ARN \
+IncludeRedirectToSubDomain=$INCLUDE_REDIRECT \
+--region us-east-1
+>>>
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperez-info-base
+>>>
+
+---  capture the outputs ----
+
+BASE_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $BASE_STACK_NAME \
+--query Stacks[0].Outputs \
+--region us-east-1`
+
+LAMBDA_VERSION=`echo $BASE_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionVersion").OutputValue'`
+
+
+LAMBDA_ARN_VERSION=`echo $BASE_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionIncludingVersion").OutputValue'`
+
+
+LAMBDA_ARN=`echo $BASE_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionArn").OutputValue'`
+
+
+---- deploy web infra ------
+
+WEB_STACK_NAME=abelperez-info-web
+INCLUDE_REDIRECT=false
+
+aws cloudformation deploy --stack-name $WEB_STACK_NAME \
+--template-file web-infra.yaml \
+--capabilities CAPABILITY_IAM \
+--parameter-overrides \
+DomainName=$DOMAIN_NAME \
+SubDomainName=$SUB_DOMAIN_NAME \
+SSLCertificateArn=$SSL_CERT_ARN \
+IncludeRedirectToSubDomain=$INCLUDE_REDIRECT \
+LambdaEdgeRedirectFunction=$LAMBDA_ARN_VERSION
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================
 
 
 
