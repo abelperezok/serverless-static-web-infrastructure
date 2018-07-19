@@ -18,7 +18,7 @@ By using these templates, you'll get the following ready to use:
 * CodeBuild project (including associated role)
 * CloudWatch event rule (to connect repo with build)
 
-## Requirements:
+## Prerequisites
 
 * AWS account
 * Route 53 - Hosted zone for the given domain
