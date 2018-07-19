@@ -334,7 +334,16 @@ aws s3 rm s3://$S3_BUCKET_NAME --recursive
 aws cloudformation delete-stack \
 --stack-name $INFRA_STACK_NAME
 
+aws cloudformation wait stack-delete-complete \
+--stack-name $INFRA_STACK_NAME
 
+----
 
+aws cloudformation delete-stack \
+--stack-name $SSL_STACK_NAME \
+--region us-east-1
 
+aws cloudformation wait stack-delete-complete \
+--stack-name $INFRA_STACK_NAME \
+--region us-east-1
 
