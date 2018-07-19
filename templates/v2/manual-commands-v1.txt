@@ -316,15 +316,23 @@ curl -L http://web.abelperezmartinez.com
 
 
 
-
 ========== removing the stacks =========
 
 comon issues:
 codecommit user 
 Cannot delete entity, must remove referenced objects first. (Service: AmazonIdentityManagement; Status Code: 409; Error Code: DeleteConflict; Request ID: 14070f65-878f-11e8-bcdc-138f1db22f46)
 
+aws iam delete-ssh-public-key \
+--user-name $CC_USER_NAME \
+--ssh-public-key-id $CC_SSH_KEY_ID
+
 StaticSiteBucket
 The bucket you tried to delete is not empty (Service: Amazon S3; Status Code: 409; Error Code: BucketNotEmpty; Request ID: C6F5F29EA58BFC3D; S3 Extended Request ID: VjLcE22uYD0f2xkoUpui/KGvkFE2Lb83GWqNFbFv8UZIHhGQ8Lc1UUCeOT5KP616yXAEluLU8L8=)
+
+aws s3 rm s3://$S3_BUCKET_NAME --recursive
+
+aws cloudformation delete-stack \
+--stack-name $INFRA_STACK_NAME
 
 
 
