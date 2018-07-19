@@ -11,16 +11,26 @@ Parameters:
     Type: String
     AllowedPattern: (?!-)[a-zA-Z0-9-]{1,15}(?<![.-])
     ConstraintDescription: Must be a valid subdomain name.
-#   SSLCertificate:
-#     Description: The Arn of SSL certificate which must be created / imported in N. Virginia (US-EAST-1) region
-#     Type: String
+  SSLCertificateArn:
+    Description: The Arn of SSL certificate which must be created / imported in N. Virginia (US-EAST-1) region
+    Type: String
+    Default: ""
+  IncludeRedirectToSubDomain:
+    Description: Whether it should include a redirection from the naked domain to the subdomain.
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
 
-# Conditions:
-#   includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
+
+Conditions:
+  createCertificate: !Equals [!Ref SSLCertificateArn, ""]
+  includeRedirect: !Equals [!Ref IncludeRedirectToSubDomain, "true"]
+
 
 Resources:
   SSLCertificate:
     Type: AWS::CertificateManager::Certificate
+    Condition: createCertificate
     Properties:
       DomainName: !Sub '*.${DomainName}'
       SubjectAlternativeNames:
@@ -36,6 +46,7 @@ Resources:
 
   AWSLambdaEdgeExecutionPolicy:
     Type: AWS::IAM::ManagedPolicy
+    Condition: includeRedirect # conditionally created
     Properties:
       Description: AWS Lambda@Edge Execution Policy
       PolicyDocument:
@@ -52,6 +63,7 @@ Resources:
 
   AWSLambdaEdgeExecutionRole:
     Type: AWS::IAM::Role
+    Condition: includeRedirect # conditionally created
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -68,6 +80,7 @@ Resources:
 
   CloudFrontHttpCanonicalRedirect:
     Type: AWS::Lambda::Function
+    Condition: includeRedirect # conditionally created
     Properties:
       Handler: index.handler
       Role: !GetAtt AWSLambdaEdgeExecutionRole.Arn
@@ -97,19 +110,24 @@ Resources:
 
   LambdaEdgeRedirectFunctionVersion0:
     Type: AWS::Lambda::Version
+    Condition: includeRedirect # conditionally created
     Properties:
       FunctionName:
         Ref: CloudFrontHttpCanonicalRedirect
       Description: Version 0"
 
 Outputs:
-  LambdaEdgeRedirectFunctionArn:
-    Description: ARN of the Lambda@Edge function
-    Value: !GetAtt CloudFrontHttpCanonicalRedirect.Arn
-  LambdaEdgeRedirectFunctionVersion:
-    Value: !GetAtt LambdaEdgeRedirectFunctionVersion0.Version
-  LambdaEdgeRedirectFunctionIncludingVersion:
-    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion0.Version}
   SSLCertificateArn:
     Value: !Ref SSLCertificate
     Description: The ARN of the new SSL Certificate created
+    Condition: createCertificate
+  LambdaEdgeRedirectFunctionArn:
+    Description: ARN of the Lambda@Edge function
+    Value: !GetAtt CloudFrontHttpCanonicalRedirect.Arn
+    Condition: includeRedirect
+  LambdaEdgeRedirectFunctionVersion:
+    Value: !GetAtt LambdaEdgeRedirectFunctionVersion0.Version
+    Condition: includeRedirect
+  LambdaEdgeRedirectFunctionIncludingVersion:
+    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion0.Version}
+    Condition: includeRedirect
