@@ -28,16 +28,16 @@ if validating certificate using Email, it can be created by base template, in th
 Set the variables to store the initial values:
 
 ```shell
-DOMAIN_NAME=abelperez.info
-SUB_DOMAIN_NAME=www
-BASE_STACK_NAME=abelperez-info-base
-INCLUDE_REDIRECT=true
+$ DOMAIN_NAME=abelperez.info
+$ SUB_DOMAIN_NAME=www
+$ BASE_STACK_NAME=abelperez-info-base
+$ INCLUDE_REDIRECT=true
 ```
 
 Deploy base stack
 
 ```shell
-aws cloudformation deploy --stack-name $BASE_STACK_NAME \
+$ aws cloudformation deploy --stack-name $BASE_STACK_NAME \
 --template-file base-infra.yaml \
 --capabilities CAPABILITY_IAM \
 --parameter-overrides \
@@ -58,17 +58,17 @@ if validating certificate using DNS, it has to created via cli and provide the c
 Once we have the certificate already validated, deploy the base infra stack. First, set the variables to store the initial values.
 
 ```shell
-SSL_CERT_ARN=arn:aws:acm:us-east-1:923123123123:certificate/69fbad8c-xxxx-yyyy-zzzz-eb59a753c09c
-DOMAIN_NAME=abelperez.info
-SUB_DOMAIN_NAME=test
-BASE_STACK_NAME=abelperez-info-base
-INCLUDE_REDIRECT=true
+$ SSL_CERT_ARN=arn:aws:acm:us-east-1:923123123123:certificate/69fbad8c-xxxx-yyyy-zzzz-eb59a753c09c
+$ DOMAIN_NAME=abelperez.info
+$ SUB_DOMAIN_NAME=test
+$ BASE_STACK_NAME=abelperez-info-base
+$ INCLUDE_REDIRECT=true
 ```
 
 Deploy base infra stack.
 
 ```shell
-aws cloudformation deploy --stack-name $BASE_STACK_NAME \
+$ aws cloudformation deploy --stack-name $BASE_STACK_NAME \
 --template-file base-infra.yaml \
 --capabilities CAPABILITY_IAM \
 --parameter-overrides \
@@ -85,19 +85,107 @@ Successfully created/updated stack - abelperez-info-base
 
 ## Deploy the web template
 
+Before deploying web stack, it's required to capture the outputs from the base infra stack, as some parameters will depend on that. First the the outputs section from base stack.
+
+```shell
+$ BASE_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $BASE_STACK_NAME \
+--query Stacks[0].Outputs \
+--region us-east-1`
+```
+If you are not using canonical redirection, LambdaEdgeRedirectFunction parameter is not required.
+
+Extract the Lambda@Edge function ARN including version, this is important for CloudFront distribution to identify the published version of the Lambda function to connect to the Viewer Request event,
+
+```shell
+$ LAMBDA_ARN_VERSION=`echo $BASE_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionIncludingVersion").OutputValue'`
+```
+
+Assuming the values for the variables from the previous steps. Add this new variable.
+
+```shell
+$ WEB_STACK_NAME=abelperez-info-web
+```
+
+Deploy web stack.
+
+```shell
+$ aws cloudformation deploy --stack-name $WEB_STACK_NAME \
+--template-file web-infra.yaml \
+--capabilities CAPABILITY_IAM \
+--parameter-overrides \
+DomainName=$DOMAIN_NAME \
+SubDomainName=$SUB_DOMAIN_NAME \
+SSLCertificateArn=$SSL_CERT_ARN \
+IncludeRedirectToSubDomain=$INCLUDE_REDIRECT \
+LambdaEdgeRedirectFunction=$LAMBDA_ARN_VERSION
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperez-info-web
+```
 
 ## Deploy the build template
 
+Before deploying web stack, it's required to capture the outputs from the base infra stack, as some parameters will depend on that. First the the outputs section from base stack.
+
+```shell
+$ WEB_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $WEB_STACK_NAME \
+--query Stacks[0].Outputs`
+```
+Extract the S3 bucket name and ARN which will be used in further steps.
+
+```shell
+$ S3_BUCKET_NAME=`echo $WEB_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketName").OutputValue'`
+
+$ S3_BUCKET_ARN=`echo $WEB_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketArn").OutputValue'`
+```
+
+Set the build stack name variable.
+
+```shell
+$ BUILD_STACK_NAME=abelperez-info-build
+```
+
+Deploy build infra stack, the only required parameter is the S3 bucket ARN where static HTML file will be copied as a result of the build pipeline. 
+
+```shell
+$ aws cloudformation deploy --stack-name $BUILD_STACK_NAME \
+--template-file build-infra.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides StaticSiteBucketArn=$S3_BUCKET_ARN
+
+Waiting for changeset to be created..
+Waiting for stack create/update to complete
+Successfully created/updated stack - abelperez-info-build
+```
 
 ## Resources configuration
 
-Get the outputs from web and build templates
+Get the outputs from web and build templates. From Web infra stack $S3_BUCKET_NAME is already set with the required value. 
 
-commands ...
+```shell
+$ BUILD_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $BUILD_STACK_NAME \
+--query Stacks[0].Outputs`
+```
 
+Extract CodeCommit SSH clone url and CodeCommit user name.
 
+```shell
+$ CC_SSH_URL=`echo $BUILD_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "CodeCommitRepositoryCloneUrlSsh").OutputValue'`
 
-(as per v1)
+$ CC_USER_NAME=`echo $BUILD_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "CodeCommitUserName").OutputValue'`
+```
+
+(the rest is as per v1)
+
 ### Upload SSH key to CodeCommit user
 ### Configure SSH host names
 ### Clone the repository

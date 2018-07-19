@@ -74,88 +74,37 @@ IncludeRedirectToSubDomain=$INCLUDE_REDIRECT \
 LambdaEdgeRedirectFunction=$LAMBDA_ARN_VERSION
 
 
+WEB_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $WEB_STACK_NAME \
+--query Stacks[0].Outputs`
+
+S3_BUCKET_NAME=`echo $WEB_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketName").OutputValue'`
+
+S3_BUCKET_ARN=`echo $WEB_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "S3StaticBucketArn").OutputValue'`
+
+
+--------- deploy build infra -----------
+
+BUILD_STACK_NAME=abelperez-info-build
+
+aws cloudformation deploy --stack-name $BUILD_STACK_NAME \
+--template-file build-infra.yaml \
+--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+--parameter-overrides StaticSiteBucketArn=$S3_BUCKET_ARN
 
 
 
+BUILD_STACK_OUTPUT=`aws cloudformation describe-stacks \
+--stack-name $BUILD_STACK_NAME \
+--query Stacks[0].Outputs`
 
+CC_SSH_URL=`echo $BUILD_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "CodeCommitRepositoryCloneUrlSsh").OutputValue'`
 
-
-
-
+CC_USER_NAME=`echo $BUILD_STACK_OUTPUT \
+| jq -r '.[] | select(.OutputKey == "CodeCommitUserName").OutputValue'`
 
 
 ================================================================
-
-
-
-# command line to create web resources - any region
-
-aws cloudformation deploy --stack-name www-abelperezmartinez-com-web-v2 \
---template-file web-infra.yaml \
---capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
---parameter-overrides $(cat web-infra-params.conf) \
---profile serverless-web
-
-# command line to create build pipeline resources - any region
-
-aws cloudformation deploy --stack-name www-abelperezmartinez-com-build-v2 \
---template-file build-infra.yaml \
---capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
---parameter-overrides $(cat build-infra-params.conf) \
---profile serverless-web
-
-
-
-
-
-# command line to retrieve stack Outputs
-aws cloudformation describe-stacks --stack-name abelperezmartinez-base-v2 \
---query Stacks[0].Outputs \
---region us-east-1 \
---profile serverless-web
-
-aws cloudformation describe-stacks --stack-name www-abelperez-info \
---query Stacks[0].Outputs \
---region eu-west-1 \
---profile serverless-web
-
-aws cloudformation describe-stacks --stack-name lambda-edge-yaml \
---query Stacks[0].Outputs \
---region us-east-1 \
---profile serverless-web
-
-
-
-sudo apt-get install jq
-
-
-STACKNAME=abelperezmartinez-base-v2
-echo $STACKNAME
->>>abelperezmartinez-base-v2
-
-LAMBDAFN=`aws cloudformation describe-stacks --stack-name $STACKNAME \
---query Stacks[0].Outputs \
---region us-east-1 \
---profile serverless-web \
-| jq -r '.[] | select(.OutputKey == "LambdaEdgeRedirectFunctionIncludingVersion").OutputValue'`
-
-echo $LAMBDAFN
->>>arn:aws:lambda:us-east-1:976153948458:function:abelperezmartinez-base-v2-CloudFrontHttpCanonicalR-10GRJW7WOAW5M:1
-
-
-
-
-
-
-SSLCertificate=arn:aws:acm:us-east-1:976153948458:certificate/dbde4cf9-5eaa-485c-b070-e230572f78e6
-DomainName=abelperezmartinez.com
-SubDomainName=www
-IncludeRedirectToSubDomain=true
-LambdaEdgeRedirectFunction=arn:aws:lambda:us-east-1:976153948458:function:abelperezmartinez-base-v2-CloudFrontHttpCanonicalR-10GRJW7WOAW5M:1
-
-
-
-
-
-
-
