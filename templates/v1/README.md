@@ -543,7 +543,7 @@ x-amz-cf-id: gndA0HuKbTjeTcfUgo2_58nqONiBJWb1g_BMiDfrMTcklhWcM5_NXA==
 
 The url redirection rule is working as expected, from HTTP to HTTPS and non-www to www.
 
-```shell
+```
 $ curl -L http://abelperez.info
 <html>
 <body>
