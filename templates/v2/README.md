@@ -206,7 +206,7 @@ The following steps should be executed to safely delete all resources:
 Remove the SSH key associated with the IAM user.
 
 ```shell
-aws iam delete-ssh-public-key \
+$ aws iam delete-ssh-public-key \
 --user-name $CC_USER_NAME \
 --ssh-public-key-id $CC_SSH_KEY_ID
 ```
@@ -214,7 +214,7 @@ aws iam delete-ssh-public-key \
 Empty the S3 bucket.
 
 ```shell
-aws s3 rm s3://$S3_BUCKET_NAME --recursive
+$ aws s3 rm s3://$S3_BUCKET_NAME --recursive
 ```
 
 The "delete-stack" command only sends the command "Delete Stack" to CloudFormation, deletion process can take some time, to make sure it's completed, we use the wait command.
@@ -222,35 +222,35 @@ The "delete-stack" command only sends the command "Delete Stack" to CloudFormati
 Delete the build stack via CloudFormation cli.
 
 ```shell
-aws cloudformation delete-stack \
+$ aws cloudformation delete-stack \
 --stack-name $BUILD_STACK_NAME
 ```
 
 Wait for the build stack to delete.
 
 ```shell
-aws cloudformation wait stack-delete-complete \
+$ aws cloudformation wait stack-delete-complete \
 --stack-name $BUILD_STACK_NAME
 ```
 
 Delete the web stack via CloudFormation cli.
 
 ```shell
-aws cloudformation delete-stack \
+$ aws cloudformation delete-stack \
 --stack-name $WEB_STACK_NAME
 ```
 
 Wait for the web stack to delete.
 
 ```shell
-aws cloudformation wait stack-delete-complete \
+$ aws cloudformation wait stack-delete-complete \
 --stack-name $WEB_STACK_NAME
 ```
 
 When build and web stacks are completely deleted, it's time to delete the base stack in N. Virginia region.
 
 ```shell
-aws cloudformation delete-stack \
+$ aws cloudformation delete-stack \
 --stack-name $BASE_STACK_NAME \
 --region us-east-1
 ```
@@ -258,7 +258,7 @@ aws cloudformation delete-stack \
 Once more, wait for the stack to be completely deleted.
 
 ```shell
-aws cloudformation wait stack-delete-complete \
+$ aws cloudformation wait stack-delete-complete \
 --stack-name $BASE_STACK_NAME \
 --region us-east-1
 ```

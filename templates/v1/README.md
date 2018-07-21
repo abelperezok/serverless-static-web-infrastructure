@@ -565,7 +565,7 @@ The following steps should be executed to safely delete all resources:
 Remove the SSH key associated with the IAM user.
 
 ```shell
-aws iam delete-ssh-public-key \
+$ aws iam delete-ssh-public-key \
 --user-name $CC_USER_NAME \
 --ssh-public-key-id $CC_SSH_KEY_ID
 ```
@@ -573,27 +573,27 @@ aws iam delete-ssh-public-key \
 Empty the S3 bucket.
 
 ```shell
-aws s3 rm s3://$S3_BUCKET_NAME --recursive
+$ aws s3 rm s3://$S3_BUCKET_NAME --recursive
 ```
 
 Delete the infra stack via CloudFormation cli.
 
 ```shell
-aws cloudformation delete-stack \
+$ aws cloudformation delete-stack \
 --stack-name $INFRA_STACK_NAME
 ```
 
 This step only sends the command "Delete Stack" to CloudFormation, deletion process can take some time, to make sure it's completed, we use the wait command.
 
 ```shell
-aws cloudformation wait stack-delete-complete \
+$ aws cloudformation wait stack-delete-complete \
 --stack-name $INFRA_STACK_NAME
 ```
 
 When the infra stack is completely deleted, it's time to delete the SSL stack in N. Virginia region.
 
 ```shell
-aws cloudformation delete-stack \
+$ aws cloudformation delete-stack \
 --stack-name $SSL_STACK_NAME \
 --region us-east-1
 ```
@@ -601,7 +601,7 @@ aws cloudformation delete-stack \
 Once more, wait for the stack to be completely deleted.
 
 ```shell
-aws cloudformation wait stack-delete-complete \
+$ aws cloudformation wait stack-delete-complete \
 --stack-name $INFRA_STACK_NAME \
 --region us-east-1
 ```
