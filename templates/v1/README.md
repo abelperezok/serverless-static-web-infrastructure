@@ -551,3 +551,57 @@ $ curl -L http://abelperez.info
 </body>
 </html>
 ```
+
+## Cleaning up stacks
+
+To get rid of all the created resources, the most common way is to delete the stacks via CloudFormation. However, since we've manually modified some resources, it would fail the deletion process for two reasons:
+
+* The IAM user (created for CodeCommit) has an SSH key associated and therefore needs to be removed before removing the user. CloudFormation would say something like: **"Cannot delete entity, must remove referenced objects first. (Service: AmazonIdentityManagement; Status Code: 409; Error Code: DeleteConflict; Request ID: 14070f65-878f-11e8-bcdc-138f1db22f46)"**
+
+* The S3 bucket where we store the static HTML files is not empty and therefore cannot be deleted with the stack. CloudFormation would say something like: **"The bucket you tried to delete is not empty (Service: Amazon S3; Status Code: 409; Error Code: BucketNotEmpty; Request ID: C6F5F29EA58BFC3D; S3 Extended Request ID: VjLcE22uYD0f2xkoUpui/KGvkFE2Lb83GWqNFbFv8UZIHhGQ8Lc1UUCeOT5KP616yXAEluLU8L8=)"**
+
+The following steps should be executed to safely delete all resources:
+
+Remove the SSH key associated with the IAM user.
+
+```shell
+aws iam delete-ssh-public-key \
+--user-name $CC_USER_NAME \
+--ssh-public-key-id $CC_SSH_KEY_ID
+```
+
+Empty the S3 bucket.
+
+```shell
+aws s3 rm s3://$S3_BUCKET_NAME --recursive
+```
+
+Delete the infra stack via CloudFormation cli.
+
+```shell
+aws cloudformation delete-stack \
+--stack-name $INFRA_STACK_NAME
+```
+
+This step only sends the command "Delete Stack" to CloudFormation, deletion process can take some time, to make sure it's completed, we use the wait command.
+
+```shell
+aws cloudformation wait stack-delete-complete \
+--stack-name $INFRA_STACK_NAME
+```
+
+When the infra stack is completely deleted, it's time to delete the SSL stack in N. Virginia region.
+
+```shell
+aws cloudformation delete-stack \
+--stack-name $SSL_STACK_NAME \
+--region us-east-1
+```
+
+Once more, wait for the stack to be completely deleted.
+
+```shell
+aws cloudformation wait stack-delete-complete \
+--stack-name $INFRA_STACK_NAME \
+--region us-east-1
+```
