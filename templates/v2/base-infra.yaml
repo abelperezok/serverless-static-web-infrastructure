@@ -106,15 +106,15 @@ Resources:
             };
             callback(null, response);
           };
-      Runtime: nodejs6.10
+      Runtime: nodejs12.x
 
-  LambdaEdgeRedirectFunctionVersion0:
+  LambdaEdgeRedirectFunctionVersion1:
     Type: AWS::Lambda::Version
     Condition: includeRedirect # conditionally created
     Properties:
       FunctionName:
         Ref: CloudFrontHttpCanonicalRedirect
-      Description: Version 0"
+      Description: Version 1"
 
 Outputs:
   SSLCertificateArn:
@@ -126,8 +126,8 @@ Outputs:
     Value: !GetAtt CloudFrontHttpCanonicalRedirect.Arn
     Condition: includeRedirect
   LambdaEdgeRedirectFunctionVersion:
-    Value: !GetAtt LambdaEdgeRedirectFunctionVersion0.Version
+    Value: !GetAtt LambdaEdgeRedirectFunctionVersion1.Version
     Condition: includeRedirect
   LambdaEdgeRedirectFunctionIncludingVersion:
-    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion0.Version}
+    Value: !Sub ${CloudFrontHttpCanonicalRedirect.Arn}:${LambdaEdgeRedirectFunctionVersion1.Version}
     Condition: includeRedirect
